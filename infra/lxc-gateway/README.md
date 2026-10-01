@@ -21,9 +21,17 @@ llama.cpp rebuild, and the llama-swap config swap — see
 ```bash
 pveam update
 pveam available | grep debian-12
-pveam download local debian-12-standard_12.7-1_amd64.tar.zst   # adjust storage ('local') and
-                                                                 # exact filename to what the
-                                                                 # previous command listed
+```
+
+(An `unable to open file '.../releases.turnkeylinux.org'` error from `pveam update` is unrelated
+to Debian templates — one of several appliance catalogs it refreshes, harmless if it fails.)
+
+**Copy the exact filename the `grep` just printed** — don't reuse a version number from this doc
+or a prior run, the point release changes over time (e.g. `12.7-1` vs `12.12-1`) and `pveam
+download` rejects anything that doesn't match exactly:
+
+```bash
+pveam download local <exact-filename-from-grep-output>
 ```
 
 ### 2. Create the container
@@ -49,7 +57,7 @@ Pick a free CT ID first (`pct list` shows what's taken). GUI path, step by step:
 Equivalent one-shot CLI version, if you prefer (adjust every placeholder in angle brackets):
 
 ```bash
-pct create 201 local:vztmpl/debian-12-standard_12.7-1_amd64.tar.zst \
+pct create 201 local:vztmpl/<exact-filename-from-grep-output> \
   --hostname lxc-gateway --cores 1 --memory 2048 --rootfs local-lvm:8 \
   --net0 name=eth0,bridge=vmbr0,ip=<chosen-static-ip>/24,gw=<your-lan-gateway-ip>
 ```
