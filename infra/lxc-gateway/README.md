@@ -16,21 +16,113 @@ llama.cpp rebuild, and the llama-swap config swap — see
 
 ## Deploy (run yourself, on the Proxmox host)
 
-1. Create the LXC (Debian 12 template), enable **nesting** and **keyctl** under
-   Datacenter → container → Options → Features (needed since this runs as a Docker container
-   inside an unprivileged LXC).
-2. Inside the LXC: `apt install -y docker.io docker-compose-plugin`.
-3. Copy this folder's two files (`docker-compose.yaml`, `litellm_config.yaml`) onto the LXC.
-4. **Edit `litellm_config.yaml`: replace `<llm01-ip>` with `llm01`'s actual LAN IP** (check this
-   on the Proxmox host or `llm01` itself, e.g. `ip a` on `llm01` — not something to infer or
-   probe for from elsewhere).
-5. `docker compose up -d`
-6. Test directly before anything else depends on it (per the doc's build order, step 3):
-   ```bash
-   curl http://localhost:4000/v1/chat/completions -H "Content-Type: application/json" \
-     -d '{"model":"chat-fast","messages":[{"role":"user","content":"hi"}]}'
-   ```
-   Repeat with `chat-default` and `chat-batch` to confirm all three aliases resolve.
+### 1. Make sure a Debian 12 template is available
+
+```bash
+pveam update
+pveam available | grep debian-12
+pveam download local debian-12-standard_12.7-1_amd64.tar.zst   # adjust storage ('local') and
+                                                                 # exact filename to what the
+                                                                 # previous command listed
+```
+
+### 2. Create the container
+
+Pick a free CT ID first (`pct list` shows what's taken). GUI path, step by step:
+
+- **Datacenter → [your node] → Create CT**
+- **General**: CT ID (e.g. `201`), Hostname `lxc-gateway`, set a root password (or paste an SSH
+  public key under "SSH Public Key" so you can `ssh` straight in instead of using `pct enter`).
+- **Template**: the `debian-12-standard` template from step 1.
+- **Disks**: 8GB is plenty (per the sizing table in the requirements doc §4.2).
+- **CPU**: 1 core.
+- **Memory**: 2048 MiB.
+- **Network**: bridge `vmbr0` (adjust if your homelab uses a different bridge name — check
+  Datacenter → [node] → Network for the actual name). Set a **static IPv4** on the same subnet as
+  `llm01` (`192.168.100.0/24` per the requirements doc) rather than DHCP — the compose files below
+  reference this LXC's IP directly, so a DHCP-assigned address that changes later would break
+  them. Pick an address you know isn't in use (check your router's DHCP lease list or an existing
+  IP-allocation note, don't guess).
+- **DNS**: defaults are fine.
+- **Confirm → Finish**.
+
+Equivalent one-shot CLI version, if you prefer (adjust every placeholder in angle brackets):
+
+```bash
+pct create 201 local:vztmpl/debian-12-standard_12.7-1_amd64.tar.zst \
+  --hostname lxc-gateway --cores 1 --memory 2048 --rootfs local-lvm:8 \
+  --net0 name=eth0,bridge=vmbr0,ip=<chosen-static-ip>/24,gw=<your-lan-gateway-ip>
+```
+
+### 3. Enable nesting + keyctl (needed for Docker inside an unprivileged LXC)
+
+GUI: select the CT → **Options → Features → Edit** → tick **Nesting** and **keyctl** → OK.
+CLI equivalent: `pct set 201 --features nesting=1,keyctl=1`.
+
+### 4. Start it and get a shell
+
+```bash
+pct start 201
+pct enter 201          # root shell directly from the Proxmox host, or:
+ssh root@<chosen-static-ip>   # if you set an SSH key in step 2
+```
+
+### 5. Install Docker inside the container
+
+```bash
+apt update && apt install -y docker.io docker-compose-plugin
+systemctl enable --now docker
+```
+
+### 6. Create the deployment files directly (no file transfer needed)
+
+These are small enough to paste straight into the container's shell — replace `<llm01-ip>` with
+`copernicus`'s actual LAN IP before running the second block:
+
+```bash
+mkdir -p /opt/lxc-gateway && cd /opt/lxc-gateway
+
+cat > docker-compose.yaml <<'EOF'
+services:
+  litellm:
+    image: ghcr.io/berriai/litellm:main-latest
+    ports: ["4000:4000"]
+    volumes: ["./litellm_config.yaml:/app/config.yaml"]
+    command: ["--config", "/app/config.yaml"]
+EOF
+
+cat > litellm_config.yaml <<'EOF'
+model_list:
+  - model_name: chat-default
+    litellm_params: { model: openai/interactive, api_base: "http://<llm01-ip>:8080/v1", api_key: "none" }
+  - model_name: chat-fast
+    litellm_params: { model: openai/fast, api_base: "http://<llm01-ip>:8080/v1", api_key: "none" }
+  - model_name: chat-batch
+    litellm_params: { model: openai/heavy-batch, api_base: "http://<llm01-ip>:8080/v1", api_key: "none" }
+EOF
+```
+
+(If you'd rather not retype these at all, `git clone` this repo onto the LXC instead — it's
+public at `github.com/smray/theAIproject` — and use the files straight from
+`infra/lxc-gateway/`. Either way, edit `<llm01-ip>` before step 7.)
+
+### 7. Bring it up and watch for errors
+
+```bash
+docker compose up -d
+docker compose logs -f   # watch startup; Ctrl-C to stop following once it looks settled
+```
+
+### 8. Test
+
+```bash
+curl http://localhost:4000/v1/chat/completions -H "Content-Type: application/json" \
+  -d '{"model":"chat-fast","messages":[{"role":"user","content":"hi"}]}'
+```
+
+Repeat with `chat-default` and `chat-batch` to confirm all three aliases resolve. Until `llm01`
+finishes its own build-out (see the prerequisite note above), expect these to fail or 404 — that's
+expected, not a sign anything here is misconfigured.
 
 ## Firewall
 
