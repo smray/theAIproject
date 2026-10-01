@@ -9,24 +9,45 @@ and `chat-batch` aliases won't actually work until these exist.
 Run all of this yourself, directly on the Proxmox host / inside `llm01` — same as the other infra
 folders, nothing here gets applied from this session.
 
-## 1. Proxmox: resize the VM (powered off)
+## 1. Proxmox: resize memory, attach the bulk-storage disk (powered off)
 
 ```bash
 sudo poweroff   # run inside llm01 first
 ```
 Then in the Proxmox GUI:
 - **Hardware → Memory → Edit** → `98304` MiB (96GB). Leave ballooning off.
-- Check free space first: `pvesm status` on the Proxmox host.
-- **Hardware → Disk → resize** (or add a second disk) to ≥500GB if the pool has room — three
-  model tiers plus OS pushes past the original 300GB once the heavy-batch model is in play.
+- **Hardware → Add → Hard Disk** → attach a new virtual disk backed by the separate storage array
+  (≥500GB — three model tiers push well past what the OS disk alone would hold). This setup keeps
+  the OS on its own allocated storage and puts model weights on the second array, rather than
+  growing the OS disk/partition — the original §4.1 text assumed a single-disk resize; this
+  replaces that path, not step 3 onward.
 
-## 2. Boot `llm01`, grow the filesystem
+## 2. Boot `llm01`, initialize the new disk and mount it for model storage
+
+The new disk shows up as a fresh block device (commonly `/dev/sdb`, but confirm — don't assume):
 
 ```bash
-sudo growpart /dev/sda 3        # adjust device/partition number to match your actual layout
-sudo pvresize /dev/sda3
-sudo lvextend -r -l +100%FREE /dev/ubuntu-vg/ubuntu-lv
-df -h /                         # confirm the new size landed
+lsblk                              # identify the new disk; it'll have no partitions/filesystem yet
+sudo parted /dev/sdb --script mklabel gpt mkpart primary ext4 0% 100%
+sudo mkfs.ext4 /dev/sdb1
+sudo mkdir -p /srv/models
+```
+
+Mount by UUID (survives device-name changes on reboot) rather than a raw path in `/etc/fstab`:
+
+```bash
+sudo blkid /dev/sdb1               # copy the UUID
+echo 'UUID=<paste-uuid-here>  /srv/models  ext4  defaults  0  2' | sudo tee -a /etc/fstab
+sudo mount -a
+df -h /srv/models                  # confirm it mounted and shows the new disk's full size
+```
+
+If `/srv/models` already has files on the OS disk from the original build (e.g. the existing
+`qwen3-8b` GGUF), move them onto the new mount before pulling anything else, so the fast tier
+isn't left stranded on the smaller OS disk:
+
+```bash
+sudo rsync -ah --progress /srv/models-old/ /srv/models/   # adjust source path to wherever it was
 ```
 
 ## 3. Rebuild llama.cpp (need `--n-cpu-moe`, added after the original build)
