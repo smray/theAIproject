@@ -8,8 +8,10 @@ scope; this is just the gateway that sits in front of it.
 
 ## Prerequisite
 
-`llm01` must already be reachable with all three model tiers responding (confirm this yourself —
-see the requirements doc §4.1's `curl` loop against `llm01:8080` — before deploying this).
+`llm01` must already be reachable with all three model tiers responding — see
+[infra/llm01/README.md](../llm01/README.md) for that checklist (only the `fast` tier is confirmed
+working from the original build; `interactive` and `heavy-batch` are new). Confirm its `curl` loop
+passes before deploying this.
 
 ## Deploy (run yourself, on the Proxmox host)
 

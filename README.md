@@ -17,7 +17,7 @@ for the full plan and phased roadmap.
 docs/             Plan, ADRs, git/build lessons
 design/           Shared design tokens (colour, type, spacing)
 infra/            Thin slice of Phase 0 backend config that Phase 1+ genuinely depends on
-                  (currently: lxc-gateway/LiteLLM) — see ADR 0003
+                  (llm01 expansion steps, lxc-gateway/LiteLLM) — see ADR 0003
 surfaces/web/     Open WebUI integration (Phase 1 — config, not new code)
 surfaces/android/ RikkaHub configuration (Phase 2 — config, not new code)
 surfaces/pc/      Tauri app: Chat view (Phase 3) + Code view (Phase 4) + hooks/skills (Phase 5)

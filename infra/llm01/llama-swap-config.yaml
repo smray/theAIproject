@@ -1,0 +1,25 @@
+# Reference copy of the three-tier llama-swap config from the requirements doc Part 4 S4.1.
+# Deploy by replacing /opt/llama-swap/config.yaml on llm01 itself, then:
+#   sudo systemctl restart llama-swap
+# Adjust model filenames to whatever you actually pulled into /srv/models.
+healthCheckTimeout: 180
+models:
+  "interactive":
+    cmd: >
+      /opt/llama.cpp/build/bin/llama-server --port ${PORT}
+      -m /srv/models/Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf
+      -ngl 99 -c 16384 -fa on
+      --cache-type-k q8_0 --cache-type-v q8_0 --parallel 1
+    ttl: 600
+  "fast":
+    cmd: >
+      /opt/llama.cpp/build/bin/llama-server --port ${PORT}
+      -m /srv/models/Qwen3-8B-Q4_K_M.gguf
+      -ngl 99 -c 16384 -fa on --parallel 1
+    ttl: 600
+  "heavy-batch":
+    cmd: >
+      /opt/llama.cpp/build/bin/llama-server --port ${PORT}
+      -m /srv/models/<chosen-235b-quant>.gguf
+      -ngl 99 --n-cpu-moe 48 -c 8192 -fa on --parallel 1
+    ttl: 1200
