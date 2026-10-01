@@ -6,6 +6,12 @@ included in this repo despite ADR 0001 scoping the backend out — see
 for why. `llm01` itself (the GPU VM) is **not** covered here — that's already built and out of
 scope; this is just the gateway that sits in front of it.
 
+**Network correction:** the requirements doc assumes a dedicated `192.168.100.0/24` segment for
+the backend. In reality `llm01` (`copernicus`) is on `vmbr01`, `192.168.1.8` — the main LAN, not a
+separate backend-only subnet. `lxc-gateway` is deployed on the same `vmbr01`/`192.168.1.x` network
+(needed for internet access during `apt`/`docker` setup anyway — see the troubleshooting notes
+further down). All IPs below reflect this actual layout, not the doc's assumed one.
+
 ## Prerequisite (for testing, not deployment)
 
 Deploying this doesn't require `llm01` to be fully ready — stand it up any time. But the step-6
@@ -77,9 +83,23 @@ ssh root@<chosen-static-ip>   # if you set an SSH key in step 2
 
 ### 5. Install Docker inside the container
 
+Debian's own repos don't carry `docker-compose-plugin` — that comes from Docker's official APT
+repo, which also gives you `docker-ce` (a more current engine than Debian's bundled `docker.io`):
+
 ```bash
-apt update && apt install -y docker.io docker-compose-plugin
+apt update
+apt install -y ca-certificates curl gnupg
+install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
+chmod a+r /etc/apt/keyrings/docker.asc
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian \
+  $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+  tee /etc/apt/sources.list.d/docker.list > /dev/null
+apt update
+apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 systemctl enable --now docker
+docker compose version   # confirm the plugin is actually present before moving on
 ```
 
 ### 6. Create the deployment files directly (no file transfer needed)

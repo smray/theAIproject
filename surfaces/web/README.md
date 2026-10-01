@@ -17,11 +17,18 @@ steps 1–5 for the full Debian-template/CT-creation/nesting/Docker-install walk
 the detail again. Summarized for this container:
 
 1. **Create the CT**: next free CT ID (e.g. `202`), hostname `lxc-ui`, 2 cores, 4096 MiB memory,
-   20GB disk (per the requirements doc §4.2 sizing table), static IP on the same
-   `192.168.100.0/24` subnet (e.g. one past whatever you picked for `lxc-gateway`).
+   20GB disk (per the requirements doc §4.2 sizing table). Use `vmbr1`/`192.168.1.x` — the actual
+   network `lxc-gateway` ended up on, not the `192.168.100.0/24` the requirements doc assumed; see
+   [infra/lxc-gateway/README.md](../../infra/lxc-gateway/README.md)'s network-correction note for
+   why, and make sure the gateway (`gw=`) is the real internet-routing device your LAN uses, not
+   just whatever's L2-reachable — that's what caused `lxc-gateway` to silently fail `apt`/`docker`
+   pulls until it was corrected.
 2. **Enable nesting + keyctl** (Options → Features, or `pct set 202 --features nesting=1,keyctl=1`).
 3. **Start it, get a shell** (`pct start 202` then `pct enter 202` or `ssh`).
-4. **Install Docker**: `apt update && apt install -y docker.io docker-compose-plugin && systemctl enable --now docker`.
+4. **Install Docker** — Debian's own repos don't carry `docker-compose-plugin`; use Docker's
+   official APT repo instead (full command block in
+   [infra/lxc-gateway/README.md](../../infra/lxc-gateway/README.md) step 5 — copy it verbatim,
+   then confirm with `docker compose version`).
 5. **Create the compose file directly** — replace `<lxc-gateway-ip>` with the gateway LXC's actual
    static IP from its own creation step before running this:
 
