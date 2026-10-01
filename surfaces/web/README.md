@@ -5,9 +5,10 @@ Status: **in progress.**
 
 ## Prerequisite
 
-[`infra/lxc-gateway`](../../infra/lxc-gateway/) must be deployed and responding first — Open
-WebUI points at the gateway, never at `llm01` directly (requirements doc Part 4 §4.2). Confirm
-the gateway's three `curl` checks pass before starting here.
+[`infra/lxc-gateway`](../../infra/lxc-gateway/) must be deployed first — Open WebUI points at the
+gateway, never at `llm01` directly (requirements doc Part 4 §4.2). The gateway container can be
+up before `llm01`'s model downloads finish; you just won't get a real chat response here until
+both are ready — fine to deploy this now and test later.
 
 ## Deploy (run yourself, on the Proxmox host)
 

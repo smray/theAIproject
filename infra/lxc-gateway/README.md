@@ -6,12 +6,13 @@ included in this repo despite ADR 0001 scoping the backend out — see
 for why. `llm01` itself (the GPU VM) is **not** covered here — that's already built and out of
 scope; this is just the gateway that sits in front of it.
 
-## Prerequisite
+## Prerequisite (for testing, not deployment)
 
-`llm01` must already be reachable with all three model tiers responding — see
-[infra/llm01/README.md](../llm01/README.md) for that checklist (only the `fast` tier is confirmed
-working from the original build; `interactive` and `heavy-batch` are new). Confirm its `curl` loop
-passes before deploying this.
+Deploying this doesn't require `llm01` to be fully ready — stand it up any time. But the step-6
+test below only fully passes once `llm01` has finished its own build-out (model downloads,
+llama.cpp rebuild, and the llama-swap config swap — see
+[infra/llm01/README.md](../llm01/README.md)). Until then, expect `chat-default`/`chat-fast`/
+`chat-batch` to fail or 404, since `llama-swap` isn't yet serving those exact model names.
 
 ## Deploy (run yourself, on the Proxmox host)
 
