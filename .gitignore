@@ -1,0 +1,49 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# Build output
+dist/
+build/
+*.tsbuildinfo
+
+# Rust / Tauri (surfaces/pc)
+surfaces/pc/**/target/
+surfaces/pc/**/Cargo.lock.bak
+
+# Android / Gradle / Kotlin (surfaces/android, only if a fork ever lands here)
+surfaces/android/**/.gradle/
+surfaces/android/**/local.properties
+surfaces/android/**/key.properties
+!surfaces/android/**/key.properties.example
+surfaces/android/**/build/
+surfaces/android/**/.kotlin/
+surfaces/android/**/*.apk
+surfaces/android/**/*.aab
+
+# Flutter / Dart (only relevant if a fork ever needs it)
+surfaces/android/**/.dart_tool/
+surfaces/android/**/.flutter-plugins
+surfaces/android/**/.flutter-plugins-dependencies
+surfaces/android/**/.packages
+surfaces/android/**/**/*.g.dart
+surfaces/android/**/**/*.freezed.dart
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Coverage
+coverage/
