@@ -42,13 +42,22 @@ sudo mount -a
 df -h /srv/models                  # confirm it mounted and shows the new disk's full size
 ```
 
-If `/srv/models` already has files on the OS disk from the original build (e.g. the existing
-`qwen3-8b` GGUF), move them onto the new mount before pulling anything else, so the fast tier
-isn't left stranded on the smaller OS disk:
+On this box, the existing fast-tier weights from the original build live at
+`/home/su/models/Qwen3-8B-Q4_K_M.gguf`, not `/srv/models` — confirmed via `sudo find / -xdev
+-iname "*.gguf"` (the hits under `/opt/llama.cpp/models/` are just llama.cpp's own bundled
+vocab/tokenizer fixtures, not model weights — ignore those). Move the real file onto the new
+disk, verifying the checksum before deleting the original:
 
 ```bash
-sudo rsync -ah --progress /srv/models-old/ /srv/models/   # adjust source path to wherever it was
+sudo rsync -ah --progress /home/su/models/Qwen3-8B-Q4_K_M.gguf /srv/models/
+sha256sum /home/su/models/Qwen3-8B-Q4_K_M.gguf /srv/models/Qwen3-8B-Q4_K_M.gguf
+# Only delete the original once the two hashes above match exactly:
+rm /home/su/models/Qwen3-8B-Q4_K_M.gguf
+df -h /srv/models /
 ```
+
+The filename already matches exactly what `llama-swap-config.yaml`'s `fast` tier expects — only
+the directory needed to change, not the config.
 
 ## 3. Rebuild llama.cpp (need `--n-cpu-moe`, added after the original build)
 
@@ -67,8 +76,7 @@ wget -c "https://huggingface.co/unsloth/Qwen3-30B-A3B-Instruct-2507-GGUF/resolve
 # Heavy-batch tier — check unsloth/Qwen3-235B-A22B-GGUF (or bartowski's equivalent) on HF for the
 # CURRENT best quant file and exact size before pulling — a Q4-class quant is ~130GB. Confirm it
 # fits your resized disk first.
-# Fast tier: you already have qwen3-8b from the original build — no change needed, just confirm
-# the filename matches what's referenced in llama-swap-config.yaml below.
+# Fast tier: already migrated to /srv/models in step 2 above — nothing to pull here.
 ```
 
 ## 5. Replace `/opt/llama-swap/config.yaml`
