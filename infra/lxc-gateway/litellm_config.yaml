@@ -1,0 +1,12 @@
+# Deploy to lxc-gateway (new LXC per the requirements doc's Part 4 §4.2).
+# Fill in <llm01-ip> with your llm01 VM's actual LAN IP before deploying.
+model_list:
+  - model_name: chat-default
+    litellm_params: { model: openai/interactive, api_base: "http://<llm01-ip>:8080/v1", api_key: "none" }
+  - model_name: chat-fast
+    litellm_params: { model: openai/fast, api_base: "http://<llm01-ip>:8080/v1", api_key: "none" }
+  - model_name: chat-batch
+    litellm_params: { model: openai/heavy-batch, api_base: "http://<llm01-ip>:8080/v1", api_key: "none" }
+  # Optional cloud fallback for anything the local tiers can't handle (C1):
+  # - model_name: chat-frontier
+  #   litellm_params: {model: anthropic/claude-sonnet-5, api_key: os.environ/ANTHROPIC_API_KEY}

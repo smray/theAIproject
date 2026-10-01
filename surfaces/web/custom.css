@@ -1,0 +1,21 @@
+/* Paste into Open WebUI → Settings → Interface → Custom CSS (or equivalent admin theming
+   setting — confirm exact location once the instance is up; it has moved between versions).
+   Source: design/design-tokens.md. This is just the variable block + font import — mapping
+   these onto Open WebUI's own component classes is separate follow-up work once the base
+   instance is confirmed working, not decided here. */
+
+@import url('https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Jost:wght@300;400;500;600&display=swap');
+
+:root {
+  --ink: #1A2332;
+  --slate: #2D3F52;
+  --accent: #7A6A52;
+  --accent-light: #9A8A72;
+  --accent-pale: #EDE8E1;
+  --stone: #F5F0E8;
+  --ash: #E2DDD6;
+  --mist: #8E8880;
+  --warm-white: #FEFCF9;
+  --font-display: 'Cormorant', Georgia, serif;
+  --font-body: 'Jost', sans-serif;
+}
