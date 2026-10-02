@@ -1,13 +1,13 @@
 # Deploy to lxc-gateway (new LXC per the requirements doc's Part 4 §4.2).
-# llm01 (copernicus) is on vmbr01, 192.168.1.8 — not the 192.168.100.0/24 segment the
+# llm01 (copernicus) is on vmbr01, 192.168.1.42 — not the 192.168.100.0/24 segment the
 # requirements doc assumed; see docs/adr/0003 and infra/lxc-gateway/README.md for the correction.
 model_list:
   - model_name: chat-default
-    litellm_params: { model: openai/interactive, api_base: "http://192.168.1.8:8080/v1", api_key: "none" }
+    litellm_params: { model: openai/interactive, api_base: "http://192.168.1.42:8080/v1", api_key: "none" }
   - model_name: chat-fast
-    litellm_params: { model: openai/fast, api_base: "http://192.168.1.8:8080/v1", api_key: "none" }
+    litellm_params: { model: openai/fast, api_base: "http://192.168.1.42:8080/v1", api_key: "none" }
   - model_name: chat-batch
-    litellm_params: { model: openai/heavy-batch, api_base: "http://192.168.1.8:8080/v1", api_key: "none" }
+    litellm_params: { model: openai/heavy-batch, api_base: "http://192.168.1.42:8080/v1", api_key: "none" }
   # Optional cloud fallback for anything the local tiers can't handle (C1):
   # - model_name: chat-frontier
   #   litellm_params: {model: anthropic/claude-sonnet-5, api_key: os.environ/ANTHROPIC_API_KEY}

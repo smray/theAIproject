@@ -7,7 +7,7 @@ for why. `llm01` itself (the GPU VM) is **not** covered here — that's already 
 scope; this is just the gateway that sits in front of it.
 
 **Network correction:** the requirements doc assumes a dedicated `192.168.100.0/24` segment for
-the backend. In reality `llm01` (`copernicus`) is on `vmbr01`, `192.168.1.8` — the main LAN, not a
+the backend. In reality `llm01` (`copernicus`) is on `vmbr01`, `192.168.1.42` — the main LAN, not a
 separate backend-only subnet. `lxc-gateway` is deployed on the same `vmbr01`/`192.168.1.x` network
 (needed for internet access during `apt`/`docker` setup anyway — see the troubleshooting notes
 further down). All IPs below reflect this actual layout, not the doc's assumed one.
