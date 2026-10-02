@@ -1,9 +1,10 @@
 # Web surface — Open WebUI integration
 
 Phase 1 of [the roadmap](../../docs/Integrated%20system%20development%20plan.md#5-phased-roadmap).
-Status: **deployed** — `lxc-ui` (CT `104`, `192.168.1.43`) is running Open WebUI, pointed at
-`lxc-gateway` (CT `102`/`odysseus`, `192.168.1.40`). Full chat responses still depend on `llm01`
-finishing its model build-out (see [infra/llm01](../../infra/llm01/)).
+Status: **done — confirmed working end-to-end.** `lxc-ui` (CT `104`, `192.168.1.43`) → `lxc-gateway`
+(CT `102`/`odysseus`, `192.168.1.40`) → `llm01`/`copernicus` round-trips real chat responses for
+`chat-default` and `chat-fast`. `chat-batch` (the 235B heavy-batch tier) will work once its model
+download finishes on `llm01` — not a web-surface issue, see [infra/llm01](../../infra/llm01/).
 
 ## Deployment record
 
@@ -67,6 +68,14 @@ serving those model names, not a problem with this container.
   `en-AU`/`en-GB`/`en-NZ` instead of `en-US`) and fell back to showing raw keys instead of
   gracefully defaulting to English. Fixed via the user's own Settings → General → Language,
   forcing it explicitly rather than relying on browser auto-detection.
+- **Duplicate connection entry under "Ollama API"** showing the gateway's own URL
+  (`http://192.168.1.40:4000/v1`) — wrong, since LiteLLM speaks the OpenAI API shape, not Ollama's.
+  Harmless but confusing; remove it, keep only the entry under "OpenAI API".
+- **The actual final blocker was on `lxc-gateway`, not here**: LiteLLM silently crash-looped with
+  no master key configured (a newer `main-latest` added a startup refusal for this). See
+  [infra/README.md](../../infra/README.md)'s LiteLLM section — this is why `curl
+  http://192.168.1.40:4000/v1/models` returning nothing was the real signal to chase, not anything
+  in Open WebUI's own config.
 
 ## Remaining checklist
 

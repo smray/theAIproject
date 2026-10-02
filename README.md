@@ -32,9 +32,11 @@ which this repo does include because Open WebUI can't be configured without it �
 
 ## Status
 
-**Phase 1 (web) in progress** — see [surfaces/web/README.md](surfaces/web/README.md) and
-[infra/lxc-gateway/README.md](infra/lxc-gateway/README.md) for the deployment checklist. Android
-and PC surfaces are pre-Phase-1; see their own `README.md` for each one's checklist.
+**Phase 1 (web) done** — confirmed working end-to-end (Open WebUI → LiteLLM gateway → `llm01`),
+see [surfaces/web/README.md](surfaces/web/README.md). Remaining Phase 1 extras (RAG/MCP wiring,
+branding) are optional polish, not blockers — see that file's checklist. **Phase 2 (Android)** has
+concrete steps written up in [surfaces/android/README.md](surfaces/android/README.md) but hasn't
+been installed/tested yet. **Phase 3+ (PC app)** hasn't started.
 
 ## Contributing
 
