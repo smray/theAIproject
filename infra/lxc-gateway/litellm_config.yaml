@@ -11,3 +11,8 @@ model_list:
   # Optional cloud fallback for anything the local tiers can't handle (C1):
   # - model_name: chat-frontier
   #   litellm_params: {model: anthropic/claude-sonnet-5, api_key: os.environ/ANTHROPIC_API_KEY}
+general_settings:
+  # Belt-and-suspenders alongside docker-compose.yaml's LITELLM_DANGEROUSLY_PERMIT_WEAK_OR_UNSET_MASTER_KEY
+  # env var, which is the one confirmed to actually matter - this YAML key alone did not stop
+  # LiteLLM's boot refusal in testing. Keeping both since they were both present when it worked.
+  dangerously_permit_weak_or_unset_master_key: true

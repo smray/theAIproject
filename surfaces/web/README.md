@@ -35,6 +35,9 @@ services:
     environment:
       - OPENAI_API_BASE_URL=http://192.168.1.40:4000/v1
       - OPENAI_API_KEY=none
+      # Without this, first boot hangs indefinitely on the default embedding model download
+      # via HuggingFace's Xet CDN backend, which doesn't complete on this network.
+      - HF_HUB_DISABLE_XET=1
     volumes: ["open-webui-data:/app/backend/data"]
 volumes: { open-webui-data: {} }
 EOF
@@ -47,6 +50,23 @@ Visit `http://192.168.1.43:3000` to create the admin account and send a test cha
 `chat-default`/`chat-fast`/`chat-batch`. Until `llm01` finishes its model build-out, expect the
 chat request itself to error even with this container healthy — that's `llama-swap` not yet
 serving those model names, not a problem with this container.
+
+### Gotchas hit during first setup
+
+- **Disk too small.** A full clone inherits the *source* container's disk size — `odysseus` was
+  sized for a lightweight gateway, not Open WebUI's larger image + embedding-model cache. Hit
+  "no space left on device" mid-deploy; fixed live with `pct resize <id> rootfs +20G` on the
+  Proxmox host, no restart needed.
+- **"No models available" in the chat UI despite the connection existing and being enabled** under
+  Admin → Settings → Connections. If this happens, re-save the connection entry (even unchanged)
+  to force it to re-fetch the model list, and independently verify the gateway itself is actually
+  serving the list: `curl http://192.168.1.40:4000/v1/models` from anywhere on the LAN.
+- **Entire Admin Settings UI showing raw i18n keys** (`settings.admin.connections.title` instead
+  of real text) — **not** a corrupted Docker image (a full image re-pull didn't fix it). Actual
+  cause: Open WebUI couldn't find a translation file matching the browser's reported locale (e.g.
+  `en-AU`/`en-GB`/`en-NZ` instead of `en-US`) and fell back to showing raw keys instead of
+  gracefully defaulting to English. Fixed via the user's own Settings → General → Language,
+  forcing it explicitly rather than relying on browser auto-detection.
 
 ## Remaining checklist
 

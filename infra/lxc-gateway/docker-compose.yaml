@@ -3,4 +3,9 @@ services:
     image: ghcr.io/berriai/litellm:main-latest
     ports: ["4000:4000"]
     volumes: ["./litellm_config.yaml:/app/config.yaml"]
+    environment:
+      # Without this, LiteLLM refuses to start at all ("no master key is set") - see
+      # infra/README.md. A real LITELLM_MASTER_KEY is needed before this gateway is ever
+      # exposed beyond the LAN; fine for now given the single-household, LAN-only scope.
+      - LITELLM_DANGEROUSLY_PERMIT_WEAK_OR_UNSET_MASTER_KEY=true
     command: ["--config", "/app/config.yaml"]

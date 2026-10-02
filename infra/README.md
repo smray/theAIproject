@@ -61,6 +61,34 @@ succeed against the same server from the host, the fix is changing the actual ho
 config (on this project, via `pct set <CTID> --nameserver "<ip> <ip>"` on the Proxmox host, since
 Proxmox manages LXC `resolv.conf` and will overwrite a manual edit) — not `daemon.json`.
 
+## LiteLLM refuses to start at all without a master key — `main-latest` is a moving tag
+
+**Symptom:** `lxc-gateway`'s `litellm` container shows "Started" in `docker compose up -d`, but
+`docker compose ps` immediately afterward shows nothing running, and port 4000 never actually
+listens (`curl`/`ss -tlnp` both show nothing there). `docker compose logs` can come back
+completely empty even though the container crash-looped — check with `docker logs
+<container-name>` directly instead if that happens.
+
+**Cause:** `ghcr.io/berriai/litellm:main-latest` is a moving tag. At some point after this
+project's gateway was first deployed, it picked up a newer LiteLLM version that added a startup
+safety check refusing to boot without a master key configured — specifically to stop someone
+accidentally running an unauthenticated proxy. The actual log line, easy to miss since
+`docker compose logs` can come back empty:
+`LiteLLM proxy refused to start: no master key is set, so every request would be accepted
+without authentication.`
+
+**Fix (confirmed working):** set `LITELLM_DANGEROUSLY_PERMIT_WEAK_OR_UNSET_MASTER_KEY=true` as an
+**environment variable** in `docker-compose.yaml` — the equivalent `general_settings.
+dangerously_permit_weak_or_unset_master_key: true` YAML key, tried first, did **not** by itself
+stop the boot refusal in testing; the env var is the one that actually mattered. See
+[infra/lxc-gateway/docker-compose.yaml](lxc-gateway/docker-compose.yaml).
+
+**This is a real, acknowledged security tradeoff, not cosmetic** — anyone who can reach port 4000
+on the LAN can use the gateway unauthenticated. Acceptable for this project's current scope
+(single household, no external exposure, Cloudflare Tunnel explicitly deferred), but **a real
+`LITELLM_MASTER_KEY` must be generated and every client's API key field updated (Open WebUI,
+later RikkaHub) before this gateway is ever exposed beyond the LAN.**
+
 ## HuggingFace's "Xet" CDN backend can hang indefinitely on this network
 
 **Symptom:** a process using `huggingface_hub` (e.g. Open WebUI downloading its default embedding
