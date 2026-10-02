@@ -34,11 +34,13 @@ gap worth closing, not cosmetic) — see
 ## Status
 
 **Phase 1 (web) done** — confirmed working end-to-end (Open WebUI → LiteLLM gateway → `llm01`),
-see [surfaces/web/README.md](surfaces/web/README.md). RAG (Qdrant/`lxc-vectordb`) is deployed too.
-Remaining Phase 1 extras (MCP wiring, web search, branding) are optional polish, not blockers —
-see that file's checklist. **Phase 2 (Android)** has concrete steps written up in
+RAG (Qdrant) and web search (Vane) both deployed too, see
+[surfaces/web/README.md](surfaces/web/README.md). Remaining extras there (MCP wiring, branding)
+are optional polish, not blockers. **Phase 2 (Android)** has concrete steps written up in
 [surfaces/android/README.md](surfaces/android/README.md) but hasn't been installed/tested yet.
-**Phase 3+ (PC app)** hasn't started.
+**Phase 3 (PC app, Chat view)** is built and packaged — see
+[surfaces/pc/README.md](surfaces/pc/README.md) — but not yet verified running against a live
+gateway. **Phases 4–5** (Code view, hooks/skills) haven't started.
 
 ## Contributing
 

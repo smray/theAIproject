@@ -1,7 +1,17 @@
 # PC surface — Tauri app (Chat view)
 
 Phases 3–5 of [the roadmap](../../docs/Integrated%20system%20development%20plan.md#5-phased-roadmap).
-Status: **Phase 3 (Chat view) built** — Tauri + React + TypeScript, scaffolded and functional.
+Status: **Phase 3 (Chat view) built and packaged.** Tauri + React + TypeScript, both `cargo build`
+and the frontend build verified clean, and a full release build (`npm run tauri build`) succeeded
+end to end — real installers exist, not just a dev-mode scaffold:
+
+- `src-tauri/target/release/bundle/nsis/The AI Project_0.1.0_x64-setup.exe` (2.6 MiB)
+- `src-tauri/target/release/bundle/msi/The AI Project_0.1.0_x64_en-US.msi` (3.6 MiB)
+
+**Not yet done: actually running the installed app and sending a live test message** — the build
+succeeding confirms it compiles and packages correctly, not that the UI/gateway round-trip works
+in practice. Run the installer and send a test message before calling this fully verified.
+
 Phases 4 (Code view/agentic engine) and 5 (hooks/skills) are not started — see those sections of
 the plan for why they're bigger, riskier pieces of work (the Phase 4 headless-mode spike in
 particular is explicitly flagged as load-bearing for that phase's whole estimate).
