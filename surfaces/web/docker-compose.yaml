@@ -3,8 +3,8 @@ services:
     image: ghcr.io/open-webui/open-webui:main
     ports: ["3000:8080"]
     environment:
-      # Replace <lxc-gateway-ip> with the lxc-gateway container's actual LAN IP.
-      - OPENAI_API_BASE_URL=http://<lxc-gateway-ip>:4000/v1
+      # odysseus/lxc-gateway, 192.168.1.40 - see infra/README.md for the known-good IP table.
+      - OPENAI_API_BASE_URL=http://192.168.1.40:4000/v1
       - OPENAI_API_KEY=none
     volumes: ["open-webui-data:/app/backend/data"]
 volumes: { open-webui-data: {} }

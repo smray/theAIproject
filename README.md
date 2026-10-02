@@ -9,6 +9,7 @@ for the full plan and phased roadmap.
 - Backend requirements spec (Parts 1–4, incl. the Proxmox/llm01 build order): [docs/Best LLM features system requirements.md](docs/Best%20LLM%20features%20system%20requirements.md)
 - Architecture decisions: [docs/adr/](docs/adr/)
 - Git hygiene & build lessons (carried over from KiwiProductivity): [docs/GIT-AND-BUILD-LESSONS.md](docs/GIT-AND-BUILD-LESSONS.md)
+- Proxmox-specific infra lessons (templating bugs, actual network layout, known-good IPs): [infra/README.md](infra/README.md)
 - Design tokens (colour/type/spacing, sourced from the Threshold Consulting brand guidelines — see [ADR 0002](docs/adr/0002-design-system-source.md)): [design/design-tokens.md](design/design-tokens.md)
 
 ## Repo layout

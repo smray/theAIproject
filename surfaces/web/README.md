@@ -1,63 +1,52 @@
 # Web surface — Open WebUI integration
 
 Phase 1 of [the roadmap](../../docs/Integrated%20system%20development%20plan.md#5-phased-roadmap).
-Status: **in progress.**
+Status: **deployed** — `lxc-ui` (CT `104`, `192.168.1.43`) is running Open WebUI, pointed at
+`lxc-gateway` (CT `102`/`odysseus`, `192.168.1.40`). Full chat responses still depend on `llm01`
+finishing its model build-out (see [infra/llm01](../../infra/llm01/)).
 
-## Prerequisite
+## Deployment record
 
-[`infra/lxc-gateway`](../../infra/lxc-gateway/) must be deployed first — Open WebUI points at the
-gateway, never at `llm01` directly (requirements doc Part 4 §4.2). The gateway container can be
-up before `llm01`'s model downloads finish; you just won't get a real chat response here until
-both are ready — fine to deploy this now and test later.
+`lxc-ui` was built by cloning the `debian12-docker-base` baseline (Debian 12 + Docker CE + working
+`vmbr1` network + DNS fix) directly from `odysseus`'s **snapshot**, not from the `pct template`
+conversion of it (`103`) — cloning from that template reproducibly produced a container that
+failed to boot (`Permission denied - Failed to exec "/sbin/init"`, empty rootfs on inspection).
+Full root-cause and the working method are in [infra/README.md](../../infra/README.md). Use the
+snapshot method for any future container needing this same baseline.
 
-## Deploy (run yourself, on the Proxmox host)
+```bash
+# Run on the Proxmox host:
+pct clone 102 <new-id> --full --hostname lxc-ui --snapname clean-docker-baseline
+pct set <new-id> --net0 name=eth0,bridge=vmbr1,ip=<new-ip>/24,gw=192.168.1.1,type=veth
+pct set <new-id> --nameserver "1.1.1.1 8.8.8.8"
+pct start <new-id>
+```
 
-Same mechanics as `lxc-gateway` — see [infra/lxc-gateway/README.md](../../infra/lxc-gateway/README.md)
-steps 1–5 for the full Debian-template/CT-creation/nesting/Docker-install walkthrough if you need
-the detail again. Summarized for this container:
+Then, inside the container:
 
-1. **Create the CT**: next free CT ID (e.g. `202`), hostname `lxc-ui`, 2 cores, 4096 MiB memory,
-   20GB disk (per the requirements doc §4.2 sizing table). Use `vmbr1`/`192.168.1.x` — the actual
-   network `lxc-gateway` ended up on, not the `192.168.100.0/24` the requirements doc assumed; see
-   [infra/lxc-gateway/README.md](../../infra/lxc-gateway/README.md)'s network-correction note for
-   why, and make sure the gateway (`gw=`) is the real internet-routing device your LAN uses, not
-   just whatever's L2-reachable — that's what caused `lxc-gateway` to silently fail `apt`/`docker`
-   pulls until it was corrected.
-2. **Enable nesting + keyctl** (Options → Features, or `pct set 202 --features nesting=1,keyctl=1`).
-3. **Start it, get a shell** (`pct start 202` then `pct enter 202` or `ssh`).
-4. **Install Docker** — Debian's own repos don't carry `docker-compose-plugin`; use Docker's
-   official APT repo instead (full command block in
-   [infra/lxc-gateway/README.md](../../infra/lxc-gateway/README.md) step 5 — copy it verbatim,
-   then confirm with `docker compose version`).
-5. **Create the compose file directly** — replace `<lxc-gateway-ip>` with the gateway LXC's actual
-   static IP from its own creation step before running this:
+```bash
+mkdir -p /opt/lxc-ui && cd /opt/lxc-ui
 
-   ```bash
-   mkdir -p /opt/lxc-ui && cd /opt/lxc-ui
+cat > docker-compose.yaml <<'EOF'
+services:
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    ports: ["3000:8080"]
+    environment:
+      - OPENAI_API_BASE_URL=http://192.168.1.40:4000/v1
+      - OPENAI_API_KEY=none
+    volumes: ["open-webui-data:/app/backend/data"]
+volumes: { open-webui-data: {} }
+EOF
 
-   cat > docker-compose.yaml <<'EOF'
-   services:
-     open-webui:
-       image: ghcr.io/open-webui/open-webui:main
-       ports: ["3000:8080"]
-       environment:
-         - OPENAI_API_BASE_URL=http://<lxc-gateway-ip>:4000/v1
-         - OPENAI_API_KEY=none
-       volumes: ["open-webui-data:/app/backend/data"]
-   volumes: { open-webui-data: {} }
-   EOF
-   ```
+docker compose up -d
+docker compose logs --tail=50
+```
 
-   (Or `git clone` this repo onto the LXC and use `surfaces/web/docker-compose.yaml` directly —
-   same either way, just edit `<lxc-gateway-ip>` first.)
-6. **Bring it up**: `docker compose up -d`, then `docker compose logs -f` to confirm it starts
-   cleanly (first run pulls the image, can take a minute).
-7. **Visit `http://<lxc-ui-ip>:3000`**, create the local admin account, and send a test chat
-   message against `chat-default` (and `chat-fast`/`chat-batch` if you want to confirm all three
-   aliases are selectable) — confirms the gateway contract end-to-end (the actual point of this
-   phase, per the plan's §2). Until `llm01` finishes its own build-out, expect the chat request
-   itself to error even once this container is healthy — that's `llama-swap` not yet serving
-   those model names, not a problem with this container.
+Visit `http://192.168.1.43:3000` to create the admin account and send a test chat message against
+`chat-default`/`chat-fast`/`chat-batch`. Until `llm01` finishes its model build-out, expect the
+chat request itself to error even with this container healthy — that's `llama-swap` not yet
+serving those model names, not a problem with this container.
 
 ## Remaining checklist
 
