@@ -50,9 +50,18 @@ Should return `{"result":{"collections":[]},"status":"ok",...}` on first run.
 
 ## Wire it into Open WebUI
 
-Admin Panel → Settings → Documents → **Vector Database**: Qdrant, **Qdrant URL**:
-`http://192.168.1.44:6333`. Verify with Workspace → Knowledge → create a collection → upload a
-test document and confirm it indexes without error.
+**Not an admin-UI setting** — Open WebUI selects its vector DB backend via environment variables
+at container startup, not a runtime toggle. Add to `surfaces/web/docker-compose.yaml` (already
+done there) and restart:
+
+```yaml
+environment:
+  - VECTOR_DB=qdrant
+  - QDRANT_URI=http://192.168.1.44:6333
+```
+
+Verify with Workspace → Knowledge → create a collection → upload a test document and confirm it
+indexes without error.
 
 ## Scope note
 

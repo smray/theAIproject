@@ -39,6 +39,9 @@ services:
       # Without this, first boot hangs indefinitely on the default embedding model download
       # via HuggingFace's Xet CDN backend, which doesn't complete on this network.
       - HF_HUB_DISABLE_XET=1
+      # Vector DB backend is selected at container startup via env var, not in the admin UI.
+      - VECTOR_DB=qdrant
+      - QDRANT_URI=http://192.168.1.44:6333
     volumes: ["open-webui-data:/app/backend/data"]
 volumes: { open-webui-data: {} }
 EOF
@@ -80,11 +83,11 @@ serving those model names, not a problem with this container.
 ## Remaining checklist
 
 - [x] Point Open WebUI at the LiteLLM gateway (not `llm01` directly).
-- [x] Wire FR2's RAG (Qdrant / `lxc-vectordb`) — deployed at `192.168.1.44:6333`
-      (`hubble`), see [infra/lxc-vectordb](../../infra/lxc-vectordb/README.md). Set in Open WebUI
-      via Admin → Settings → Documents → Vector Database = Qdrant,
-      URL `http://192.168.1.44:6333`. **Verify**: Workspace → Knowledge → create a collection →
-      upload a test document and confirm it indexes without error.
+- [x] Wire FR2's RAG (Qdrant / `lxc-vectordb`) — deployed at `192.168.1.44:6333` (`hubble`), see
+      [infra/lxc-vectordb](../../infra/lxc-vectordb/README.md). **Not** an admin-UI setting —
+      Open WebUI selects its vector DB backend via `VECTOR_DB`/`QDRANT_URI` env vars at container
+      startup (added to `docker-compose.yaml` above). **Verify**: Workspace → Knowledge → create a
+      collection → upload a test document and confirm it indexes without error.
 - [ ] Wire FR9's MCP servers into Open WebUI's settings UI — blocked, no MCP servers deployed
       anywhere in this project yet (`lxc-memory` from the requirements doc §4.2 doesn't exist).
 - [ ] Decide Perplexica/Vane embedding (tab inside Open WebUI vs. separate bookmarked URL) —

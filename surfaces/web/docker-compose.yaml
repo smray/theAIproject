@@ -9,5 +9,9 @@ services:
       # Without this, first boot hangs indefinitely fetching the default embedding model via
       # HuggingFace's Xet CDN backend, which doesn't complete on this network (see infra/README.md).
       - HF_HUB_DISABLE_XET=1
+      # Vector DB backend is selected at container startup via env var, not in the admin UI -
+      # hubble/lxc-vectordb, 192.168.1.44 - see infra/lxc-vectordb/README.md.
+      - VECTOR_DB=qdrant
+      - QDRANT_URI=http://192.168.1.44:6333
     volumes: ["open-webui-data:/app/backend/data"]
 volumes: { open-webui-data: {} }
