@@ -20,6 +20,8 @@ models:
   "heavy-batch":
     cmd: >
       /opt/llama.cpp/build/bin/llama-server --port ${PORT}
-      -m /srv/models/<chosen-235b-quant>.gguf
+      -m /srv/models/Qwen3-235B-A22B-Q4_K_M-00001-of-00003.gguf
       -ngl 99 --n-cpu-moe 48 -c 8192 -fa on --parallel 1
     ttl: 1200
+    # Q4_K_M is a 3-shard split (132.4 GiB total, unsloth/Qwen3-235B-A22B-GGUF). Point -m at
+    # shard 1 only — llama.cpp auto-loads the other two from the same directory.

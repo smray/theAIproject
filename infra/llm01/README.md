@@ -73,9 +73,14 @@ cmake --build build -j 8
 cd /srv/models
 # Interactive tier — ~30B total / ~3B active MoE, full GPU residency
 wget -c "https://huggingface.co/unsloth/Qwen3-30B-A3B-Instruct-2507-GGUF/resolve/main/Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf"
-# Heavy-batch tier — check unsloth/Qwen3-235B-A22B-GGUF (or bartowski's equivalent) on HF for the
-# CURRENT best quant file and exact size before pulling — a Q4-class quant is ~130GB. Confirm it
-# fits your resized disk first.
+
+# Heavy-batch tier — unsloth/Qwen3-235B-A22B-GGUF's Q4_K_M quant is a 3-shard split, 132.4 GiB
+# total (confirmed via HF API, not guessed). Pull all three; llama.cpp auto-loads shards 2-3
+# when pointed at shard 1.
+wget -c "https://huggingface.co/unsloth/Qwen3-235B-A22B-GGUF/resolve/main/Q4_K_M/Qwen3-235B-A22B-Q4_K_M-00001-of-00003.gguf"
+wget -c "https://huggingface.co/unsloth/Qwen3-235B-A22B-GGUF/resolve/main/Q4_K_M/Qwen3-235B-A22B-Q4_K_M-00002-of-00003.gguf"
+wget -c "https://huggingface.co/unsloth/Qwen3-235B-A22B-GGUF/resolve/main/Q4_K_M/Qwen3-235B-A22B-Q4_K_M-00003-of-00003.gguf"
+
 # Fast tier: already migrated to /srv/models in step 2 above — nothing to pull here.
 ```
 
