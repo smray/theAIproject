@@ -61,6 +61,27 @@ succeed against the same server from the host, the fix is changing the actual ho
 config (on this project, via `pct set <CTID> --nameserver "<ip> <ip>"` on the Proxmox host, since
 Proxmox manages LXC `resolv.conf` and will overwrite a manual edit) — not `daemon.json`.
 
+## HuggingFace's "Xet" CDN backend can hang indefinitely on this network
+
+**Symptom:** a process using `huggingface_hub` (e.g. Open WebUI downloading its default embedding
+model, `sentence-transformers/all-MiniLM-L6-v2`, on first boot) hangs — logs show repeated `GET
+.../xet-read-token/...` calls to `huggingface.co` succeeding (`200 OK`) every ~20-30s, but the
+actual file content never arrives and the process never progresses. This blocks app startup
+entirely (e.g. Open WebUI's HTTP server never starts listening, so `curl` gets an empty reply, not
+a connection-refused).
+
+**Cause:** `huggingface_hub`'s newer "Xet" storage backend serves file content from a separate CDN
+domain (not `huggingface.co` itself — we saw `us.aws.cdn.hf.co` elsewhere in this project, pulling
+a model directly on `llm01`). Something about this network/firewall setup allows the token-issuing
+API calls through but not the actual Xet CDN blob transfer, causing silent infinite retry rather
+than a clear connection error.
+
+**Fix:** set `HF_HUB_DISABLE_XET=1` as an environment variable on anything that downloads from
+HuggingFace via `huggingface_hub` — forces the standard HTTPS download path instead, which works
+fine on this network. Applied in `surfaces/web/docker-compose.yaml` for Open WebUI; apply the same
+env var anywhere else in this project that ends up calling `huggingface_hub` (e.g. if `lxc-studio`
+or similar is ever built).
+
 ## Known-good static IPs in use on `vmbr1`/`192.168.1.0/24`
 
 | Host | IP | Role |

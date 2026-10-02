@@ -6,5 +6,8 @@ services:
       # odysseus/lxc-gateway, 192.168.1.40 - see infra/README.md for the known-good IP table.
       - OPENAI_API_BASE_URL=http://192.168.1.40:4000/v1
       - OPENAI_API_KEY=none
+      # Without this, first boot hangs indefinitely fetching the default embedding model via
+      # HuggingFace's Xet CDN backend, which doesn't complete on this network (see infra/README.md).
+      - HF_HUB_DISABLE_XET=1
     volumes: ["open-webui-data:/app/backend/data"]
 volumes: { open-webui-data: {} }
