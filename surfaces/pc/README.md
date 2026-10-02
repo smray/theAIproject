@@ -1,55 +1,79 @@
-# PC surface — Tauri app (Chat view)
+# PC surface — Tauri app (Chat + Code views)
 
 Phases 3–5 of [the roadmap](../../docs/Integrated%20system%20development%20plan.md#5-phased-roadmap).
-Status: **Phase 3 (Chat view) built and packaged.** Tauri + React + TypeScript, both `cargo build`
-and the frontend build verified clean, and a full release build (`npm run tauri build`) succeeded
-end to end — real installers exist, not just a dev-mode scaffold:
-
-- `src-tauri/target/release/bundle/nsis/The AI Project_0.1.0_x64-setup.exe` (2.6 MiB)
-- `src-tauri/target/release/bundle/msi/The AI Project_0.1.0_x64_en-US.msi` (3.6 MiB)
-
-**Not yet done: actually running the installed app and sending a live test message** — the build
-succeeding confirms it compiles and packages correctly, not that the UI/gateway round-trip works
-in practice. Run the installer and send a test message before calling this fully verified.
-
-Phases 4 (Code view/agentic engine) and 5 (hooks/skills) are not started — see those sections of
-the plan for why they're bigger, riskier pieces of work (the Phase 4 headless-mode spike in
-particular is explicitly flagged as load-bearing for that phase's whole estimate).
+Status: **Chat view (Phase 3) and a working Code view (Phase 4) are both built.** A basic
+hooks/skills layer (Phase 5) is built on top. This compresses what the plan scoped as three
+separate phases — including an explicit one-week spike before Phase 4 even started — into one
+overnight push, at the user's explicit direction to not stop at phase boundaries. Read the
+"What was actually verified" section below before trusting any of this in a real workflow.
 
 ## What's here
 
-- **Tauri 2 + React 19 + TypeScript**, scaffolded via `create-tauri-app` (`react-ts` template).
-- **Chat view only** — a thin client to the gateway, same contract as the web/Android surfaces,
-  streaming responses via SSE. Not a re-implementation of Open WebUI's full feature set (RAG,
-  Knowledge, admin settings) — just chat, per the plan's explicit scope for this phase.
-- **`src/gateway.ts`** — the gateway client. Uses `@tauri-apps/plugin-http`'s `fetch`, not the
-  browser's own `fetch`, specifically because Tauri's HTTP plugin runs the request through the
-  Rust backend rather than the webview — this sidesteps CORS entirely (LiteLLM's default CORS
-  config is unknown/untested for a bare webview origin, so this avoids depending on it) but means
-  the target URL must be explicitly allow-listed in `src-tauri/capabilities/default.json`.
-- **`src/tokens.css`** — the shared [design tokens](../../design/design-tokens.md), duplicated
-  here (not a shared import, since this is a separate build pipeline from Open WebUI's) — keep
-  the two in sync by hand if the palette changes.
-- Gateway URL is configurable at runtime (gear icon → Settings panel), persisted to
-  `localStorage`, defaulting to `http://192.168.1.40:4000/v1` (`odysseus`/`lxc-gateway` — see
-  [infra/README.md](../../infra/README.md)'s known-good IP table). Model list is fetched from the
-  gateway's `/v1/models` on load; falls back to the three known aliases
-  (`chat-default`/`chat-fast`/`chat-batch`) if the gateway isn't reachable yet.
+- **Tauri 2 + React 19 + TypeScript**, two views sharing one window: **Chat** (unchanged from the
+  original Phase 3 build) and **Code** (new).
+- **Code view**: a real PTY-backed terminal (via the `portable-pty` Rust crate, rendered with
+  xterm.js) running **Aider**, not a custom-built agentic loop. This is the plan's own documented
+  fallback — §4 of the integrated plan says "if [the headless-mode spike] falls short, Aider via
+  an embedded terminal pane is a known-working fallback that loses some polish but not
+  functionality." The spike itself (verifying whether Pi/Zero's headless mode exposes what a GUI
+  needs) was skipped entirely for time, not attempted and failed — going straight to the
+  documented fallback was a deliberate choice, not a retreat from a failed attempt.
+- **Hooks**: approximated, not a true re-implementation of Claude Code's pre/post-tool-use
+  interception. Aider is a black-box interactive process — individual tool calls inside it aren't
+  observable or interceptable. What's real: **session-start** (runs before Aider launches),
+  **session-stop** (runs after it exits), and **post-file-change** (a filesystem watcher on the
+  working directory, standing in for "post-tool-use" since file edits are Aider's dominant tool
+  call). Configured via the ⚓ button in the Code view, stored as
+  `<app-config-dir>/hooks.json`.
+- **Skills**: a folder of `.md` files (`<app-config-dir>/skills/`, auto-created with a README on
+  first run). Each one gets attached to an Aider session as read-only context via `--read` when
+  selected in the UI — a reasonable approximation of "on-demand loaded instruction" but without
+  Claude Code's actual progressive-disclosure mechanics (near-zero cost until invoked) — every
+  selected skill's full content loads into context immediately, there's no lazy/partial loading.
 
-## Capability scope — update this if the gateway's IP ever changes
+## What was actually verified (read this before trusting it)
 
-`src-tauri/capabilities/default.json` explicitly allow-lists `http://192.168.1.40:*/*` for the
-HTTP plugin. This is intentionally narrow (not a LAN-wide wildcard) since the exact wildcard
-behavior for raw IP-address hostname patterns wasn't verified against this Tauri version — see
-the plugin's own `scope.rs` test suite if this needs revisiting. **If `odysseus`'s IP changes,
-this file needs updating and the app rebuilt** — the in-app Settings panel only changes where
-`fetch` calls are *sent*, not what the Rust-side scope permits sending them *to*.
+- ✅ **Core engine confirmed working end-to-end, outside the GUI**: ran Aider directly
+  (`aider --openai-api-base http://192.168.1.40:4000/v1 --model openai/chat-fast --message "..."`)
+  against a scratch git repo. It connected through the gateway, got a real model response, wrote
+  a file, and committed it. This is the single biggest risk the plan flagged, and it works.
+- ✅ Rust backend (`cargo build`) and frontend (`tsc` + `vite build`) both compile clean.
+- ❌ **The actual Tauri window — PTY terminal rendering, xterm.js input/output wiring, the
+  Chat/Code tab switch, the skill picker, the hooks panel — has not been visually tested.** There
+  is no way to drive a native GUI window from the environment this was built in. The individual
+  pieces (Rust PTY spawning, event emission, xterm.js, the React state) are each a known,
+  standard pattern, correctly wired as far as static review can confirm, but **"it compiles" is
+  not "it works" for a GUI** — the same lesson this project's own
+  [GIT-AND-BUILD-LESSONS.md](../../docs/GIT-AND-BUILD-LESSONS.md) already recorded from
+  KiwiProductivity's Gradle work. **Actually opening the app and running a real Code session is
+  the first real test.**
+
+## Setting up Aider (required for the Code view — not bundled)
+
+A Python venv isn't portable — it embeds absolute paths back to the Python installation that
+created it (`pyvenv.cfg`), so copying one into the installer and running it on a different
+machine/path would just break. Properly solving that means a frozen standalone build (e.g.
+PyInstaller) — not attempted tonight. Instead, Aider is an external prerequisite, same as any
+other CLI tool:
+
+```bash
+# This machine already has this set up at surfaces/pc/aider-env (Python 3.12 venv - 3.14 was
+# too new, several of Aider's dependencies had no prebuilt wheels for it yet):
+py -3.12 -m venv surfaces/pc/aider-env
+surfaces/pc/aider-env/Scripts/python.exe -m pip install --upgrade pip setuptools wheel
+surfaces/pc/aider-env/Scripts/python.exe -m pip install aider-chat
+```
+
+The Rust backend (`src-tauri/src/code_session.rs`, `resolve_aider_path()`) looks for it in order:
+1. `AI_PROJECT_AIDER_PATH` env var, if set (exact path to `aider.exe`).
+2. `aider-env/Scripts/aider.exe` next to the project root — works automatically in `tauri dev`.
+3. `aider` on `PATH` — works for the packaged/installed app, if Aider is installed globally
+   (`pip install aider-chat` without a venv) or `aider-env\Scripts` is added to `PATH` manually.
+
+If none of these resolve, starting a Code session fails with a clear error in the UI rather than
+a cryptic spawn failure.
 
 ## Run it (development)
-
-Prerequisites: Node.js, Rust (`rustup`), and on Windows — MSVC Build Tools + WebView2 (both were
-already present on this machine; see `rustup`/`cargo` install notes in
-[docs/GIT-AND-BUILD-LESSONS.md](../../docs/GIT-AND-BUILD-LESSONS.md) if setting up fresh).
 
 ```bash
 cd surfaces/pc
@@ -64,29 +88,26 @@ cd surfaces/pc
 npm run tauri build
 ```
 
-Output lands in `src-tauri/target/release/bundle/` — on Windows, both an NSIS `.exe` installer
-and an MSI are produced by default (`bundle.targets: "all"` in `tauri.conf.json`). This is the
-actual "double-click to install" artifact — not `npm run tauri dev`, which just runs it directly
-without producing anything installable.
+Output: `src-tauri/target/release/bundle/nsis/*.exe` and `.../bundle/msi/*.msi`.
 
-## Known limitations (Phase 3 scope, not bugs)
+## Capability scope — update this if the gateway's IP ever changes
 
-- No Code view (Phase 4) — chat only.
-- No message persistence across app restarts — each launch starts a fresh conversation. Adding
-  local history storage is natural Phase 3 follow-up work, not scoped into this initial build.
-- No RAG/Knowledge, no MCP tool use, no web search — those are Open WebUI-specific features (or
-  Phase 4/5 territory for this surface), not reimplemented here.
-- Error handling is minimal: a dismissable banner on request failure, no retry logic.
+`src-tauri/capabilities/default.json` explicitly allow-lists `http://192.168.1.40:*/*` for the
+HTTP plugin (used by Chat). The Code view's gateway access goes through Aider's own process (a
+separate OS process with its own network access, not subject to Tauri's capability system at
+all), so this scope only affects Chat.
 
-## Phase 4 — Code view (not started)
+## Known limitations / explicitly not done tonight
 
-Per the plan's §4: one-week spike first, load-bearing for this whole phase's estimate — verify
-whether Pi or Zero's headless mode actually exposes what a custom GUI needs (structured tool
-calls, diffs, plan steps — not just terminal text to re-parse) before embedding either. Aider via
-an embedded terminal pane is the documented fallback if that spike fails.
-
-## Phase 5 — Hooks/skills layer (not started)
-
-Builds on a working Code view. The one piece of genuinely new engineering this plan calls out
-explicitly (per the requirements doc's Part 2 §5 gap analysis) — not available off-the-shelf in
-any surveyed orchestration framework.
+- **No message persistence** (Chat) across restarts.
+- **No true tool-call-level hooks** — see the Hooks section above for what's real vs.
+  approximated.
+- **Skills have no lazy-loading** — full content loads immediately on selection, not on-demand.
+- **No multi-session support in Code view** — one Aider session at a time per app instance (the
+  backend's `CodeSessionState` is a `HashMap` so it technically *could* hold several, but the UI
+  only drives one).
+- **Aider is not bundled** — external prerequisite, see above.
+- **RAG, MCP tool use, web search** — not reimplemented here; those are Open WebUI/`lxc-retrieval`
+  territory per the web surface, not duplicated in this app.
+- **No actual GUI testing performed** — see "What was actually verified" above. This is the most
+  important limitation to internalize before relying on this.

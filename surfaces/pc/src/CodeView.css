@@ -1,0 +1,126 @@
+.code-view {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  background: var(--ink);
+}
+
+.code-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 24px;
+  background: var(--stone);
+  border-bottom: 1px solid var(--ash);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.folder-button {
+  font-family: var(--font-body);
+  font-size: 13px;
+  padding: 6px 12px;
+  border: 1px solid var(--ash);
+  border-radius: 4px;
+  background: var(--warm-white);
+  color: var(--slate);
+  cursor: pointer;
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.folder-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.code-toolbar select {
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--slate);
+  background: var(--warm-white);
+  border: 1px solid var(--ash);
+  border-radius: 4px;
+  padding: 6px 10px;
+}
+
+.skill-picker {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  flex: 1;
+}
+
+.skill-empty {
+  font-size: 12px;
+  color: var(--mist);
+  font-style: italic;
+}
+
+.skill-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--slate);
+  background: var(--accent-pale);
+  border-radius: 12px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+.hooks-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 24px;
+  background: var(--stone);
+  border-bottom: 1px solid var(--ash);
+  flex-shrink: 0;
+}
+
+.hooks-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hooks-field label {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--mist);
+}
+
+.hooks-field textarea {
+  font-family: "Cascadia Code", Consolas, monospace;
+  font-size: 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--ash);
+  border-radius: 4px;
+  background: var(--warm-white);
+  color: var(--ink);
+  resize: vertical;
+}
+
+.hooks-panel button {
+  align-self: flex-start;
+  font-family: var(--font-body);
+  font-size: 13px;
+  padding: 6px 16px;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  background: var(--accent);
+  color: var(--warm-white);
+  cursor: pointer;
+}
+
+.terminal-container {
+  flex: 1;
+  min-height: 0;
+  padding: 10px;
+  background: var(--ink);
+}

@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# Local Aider venv (Python 3.12) - not portable, not bundled, see README's Code view section
+aider-env/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
