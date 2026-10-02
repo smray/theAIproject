@@ -116,7 +116,8 @@ or similar is ever built).
 |---|---|---|
 | `copernicus` (`llm01`) | `192.168.1.42` | GPU VM, llama.cpp + llama-swap on :8080 |
 | `odysseus` (`lxc-gateway`) | `192.168.1.40` | LiteLLM gateway on :4000 |
-| `lxc-ui` | `192.168.1.43` | Open WebUI on :3000 |
+| `newton` (`lxc-ui`) | `192.168.1.43` | Open WebUI on :3000 |
+| `hubble` (`lxc-vectordb`) | `192.168.1.44` | Qdrant on :6333 |
 
 Gateway for this subnet is `192.168.1.1` (**not** `192.168.1.2`/`NSW01` — that's the Cisco
 switch's management address, which only permits narrow admin traffic per its `ADSL_LAN_IN` ACL,

@@ -18,7 +18,7 @@ for the full plan and phased roadmap.
 docs/             Plan, ADRs, git/build lessons
 design/           Shared design tokens (colour, type, spacing)
 infra/            Thin slice of Phase 0 backend config that Phase 1+ genuinely depends on
-                  (llm01 expansion steps, lxc-gateway/LiteLLM) — see ADR 0003
+                  (llm01 expansion, lxc-gateway/LiteLLM, lxc-vectordb/Qdrant) — see ADR 0003
 surfaces/web/     Open WebUI integration (Phase 1 — config, not new code)
 surfaces/android/ RikkaHub configuration (Phase 2 — config, not new code)
 surfaces/pc/      Tauri app: Chat view (Phase 3) + Code view (Phase 4) + hooks/skills (Phase 5)
@@ -26,17 +26,19 @@ surfaces/pc/      Tauri app: Chat view (Phase 3) + Code view (Phase 4) + hooks/s
 
 Backend (Phase 0 — gateway, retrieval, memory, orchestration) is mostly out of this repo's scope;
 it's built per the [requirements spec](docs/Best%20LLM%20features%20system%20requirements.md)'s
-Part 4 elsewhere (`llm01`, the GPU VM, is already live). The one exception is `infra/lxc-gateway`,
-which this repo does include because Open WebUI can't be configured without it — see
+Part 4 elsewhere (`llm01`, the GPU VM, is already live). The exceptions are `infra/lxc-gateway`
+(Open WebUI can't be configured without it) and `infra/lxc-vectordb` (RAG is a real capability
+gap worth closing, not cosmetic) — see
 [ADR 0003](docs/adr/0003-gateway-config-included-despite-phase-0-scope.md).
 
 ## Status
 
 **Phase 1 (web) done** — confirmed working end-to-end (Open WebUI → LiteLLM gateway → `llm01`),
-see [surfaces/web/README.md](surfaces/web/README.md). Remaining Phase 1 extras (RAG/MCP wiring,
-branding) are optional polish, not blockers — see that file's checklist. **Phase 2 (Android)** has
-concrete steps written up in [surfaces/android/README.md](surfaces/android/README.md) but hasn't
-been installed/tested yet. **Phase 3+ (PC app)** hasn't started.
+see [surfaces/web/README.md](surfaces/web/README.md). RAG (Qdrant/`lxc-vectordb`) is deployed too.
+Remaining Phase 1 extras (MCP wiring, web search, branding) are optional polish, not blockers —
+see that file's checklist. **Phase 2 (Android)** has concrete steps written up in
+[surfaces/android/README.md](surfaces/android/README.md) but hasn't been installed/tested yet.
+**Phase 3+ (PC app)** hasn't started.
 
 ## Contributing
 

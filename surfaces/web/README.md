@@ -80,9 +80,13 @@ serving those model names, not a problem with this container.
 ## Remaining checklist
 
 - [x] Point Open WebUI at the LiteLLM gateway (not `llm01` directly).
-- [ ] Wire FR2's RAG (Qdrant / `lxc-vectordb`) and FR9's MCP servers into Open WebUI's settings UI
-      — depends on `lxc-vectordb` existing (not yet deployed; separate infra step, see the
-      requirements doc §4.2/§4.4 build order).
+- [x] Wire FR2's RAG (Qdrant / `lxc-vectordb`) — deployed at `192.168.1.44:6333`
+      (`hubble`), see [infra/lxc-vectordb](../../infra/lxc-vectordb/README.md). Set in Open WebUI
+      via Admin → Settings → Documents → Vector Database = Qdrant,
+      URL `http://192.168.1.44:6333`. **Verify**: Workspace → Knowledge → create a collection →
+      upload a test document and confirm it indexes without error.
+- [ ] Wire FR9's MCP servers into Open WebUI's settings UI — blocked, no MCP servers deployed
+      anywhere in this project yet (`lxc-memory` from the requirements doc §4.2 doesn't exist).
 - [ ] Decide Perplexica/Vane embedding (tab inside Open WebUI vs. separate bookmarked URL) —
       default to the separate URL per the plan; only revisit if that proves annoying in practice.
       Depends on `lxc-retrieval` (not yet deployed).
