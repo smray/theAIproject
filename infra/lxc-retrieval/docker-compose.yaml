@@ -1,0 +1,7 @@
+services:
+  vane:
+    image: itzcrazykns1337/vane:latest
+    ports: ["3000:3000"]
+    volumes: ["vane-data:/home/vane/data"]
+    restart: unless-stopped
+volumes: { vane-data: {} }

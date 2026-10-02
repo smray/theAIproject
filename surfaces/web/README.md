@@ -89,9 +89,11 @@ serving those model names, not a problem with this container.
       Workspace → Knowledge without error.
 - [ ] Wire FR9's MCP servers into Open WebUI's settings UI — blocked, no MCP servers deployed
       anywhere in this project yet (`lxc-memory` from the requirements doc §4.2 doesn't exist).
-- [ ] Decide Perplexica/Vane embedding (tab inside Open WebUI vs. separate bookmarked URL) —
-      default to the separate URL per the plan; only revisit if that proves annoying in practice.
-      Depends on `lxc-retrieval` (not yet deployed).
+- [x] Deploy FR1's web search (Vane, formerly Perplexica — [the project renamed and
+      simplified](../../infra/lxc-retrieval/README.md), bundled SearxNG, no separate search
+      container needed as the plan assumed). Deployed at `192.168.1.45:3000`. Embedding: separate
+      bookmarked URL, not a tab inside Open WebUI, per the plan's default — revisit only if the
+      two-URL experience proves annoying in practice.
 - [ ] Apply [custom.css](custom.css) (the shared [design tokens](../../design/design-tokens.md))
       via Open WebUI's custom CSS setting, once the base instance is confirmed working.
 - [ ] Note the [Open WebUI branding-clause caveat](../../docs/Integrated%20system%20development%20plan.md#2-surface-1--web-endpoint)
