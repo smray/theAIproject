@@ -1,3 +1,74 @@
+.code-layout {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.code-sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--stone);
+  border-right: 1px solid var(--ash);
+}
+
+.code-sidebar-label {
+  padding: 14px 16px 6px;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--mist);
+}
+
+.code-sessions-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 8px;
+}
+
+.code-session-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--slate);
+}
+
+.code-session-item:hover {
+  background: var(--accent-pale);
+}
+
+.code-session-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.code-session-delete {
+  background: none;
+  border: none;
+  color: var(--mist);
+  cursor: pointer;
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.code-session-delete:hover {
+  color: #8a3b33;
+}
+
+.code-sessions-empty {
+  padding: 10px;
+  font-size: 12px;
+  color: var(--mist);
+  font-style: italic;
+}
+
 .code-view {
   display: flex;
   flex-direction: column;

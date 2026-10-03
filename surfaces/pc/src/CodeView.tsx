@@ -28,6 +28,13 @@ interface ProjectInfo {
   created_at: number;
 }
 
+interface PastSession {
+  id: string;
+  title: string;
+  project_id: string | null;
+  updated_at: number;
+}
+
 const EMPTY_HOOKS: HooksConfig = { session_start: [], session_stop: [], post_file_change: [] };
 
 export default function CodeView() {
@@ -41,22 +48,43 @@ export default function CodeView() {
   const [error, setError] = useState<string | null>(null);
   const [projects, setProjects] = useState<ProjectInfo[]>([]);
   const [projectId, setProjectId] = useState<string>("");
+  const [pastSessions, setPastSessions] = useState<PastSession[]>([]);
 
   const termContainerRef = useRef<HTMLDivElement>(null);
   const termRef = useRef<Terminal | null>(null);
   const fitRef = useRef<FitAddon | null>(null);
   const unlistenRef = useRef<UnlistenFn[]>([]);
 
+  function refreshPastSessions() {
+    invoke<PastSession[]>("list_sessions", { view: "code" }).then(setPastSessions).catch(() => undefined);
+  }
+
   useEffect(() => {
     invoke<SkillInfo[]>("list_skills").then(setSkills).catch(() => undefined);
     invoke<HooksConfig>("get_hooks_config").then(setHooks).catch(() => undefined);
     invoke<ProjectInfo[]>("list_projects").then(setProjects).catch(() => undefined);
+    refreshPastSessions();
   }, []);
 
   function selectProject(id: string) {
     setProjectId(id);
     const project = projects.find((p) => p.id === id);
     if (project?.code_path) setCwd(project.code_path);
+  }
+
+  // Aider's own PTY process ends with the session - there's nothing live to resume - so this
+  // just pre-fills the working directory/project for a fresh "Start", same convenience as
+  // picking a project, not a real resume.
+  function reuseSession(s: PastSession) {
+    if (sessionId) return;
+    setCwd(s.title);
+    setProjectId(s.project_id ?? "");
+  }
+
+  async function deletePastSession(id: string, e: React.MouseEvent) {
+    e.stopPropagation();
+    await invoke("delete_session", { sessionId: id }).catch(() => undefined);
+    refreshPastSessions();
   }
 
   useEffect(() => {
@@ -148,7 +176,9 @@ export default function CodeView() {
       // History record only (cwd/model/when) - not a transcript. Aider already keeps its own
       // .aider.chat.history.md inside the working directory, which is the actual conversation
       // record; this is just so past Code sessions show up somewhere in the app.
-      invoke("create_session", { view: "code", title: cwd, project_id: projectId || null }).catch(() => undefined);
+      invoke("create_session", { view: "code", title: cwd, project_id: projectId || null })
+        .then(refreshPastSessions)
+        .catch(() => undefined);
 
       const unlistenOutput = await listen<string>(`code-output-${id}`, (event) => {
         termRef.current?.write(event.payload);
@@ -180,7 +210,30 @@ export default function CodeView() {
   }
 
   return (
-    <div className="code-view">
+    <div className="code-layout">
+      <aside className="code-sidebar">
+        <div className="code-sidebar-label">Past sessions</div>
+        <div className="code-sessions-list">
+          {pastSessions.map((s) => (
+            <div key={s.id} className="code-session-item" onClick={() => reuseSession(s)}>
+              <span className="code-session-title" title={s.title}>
+                {s.title}
+              </span>
+              <button
+                type="button"
+                className="code-session-delete"
+                onClick={(e) => deletePastSession(s.id, e)}
+                title="Delete"
+              >
+                ✕
+              </button>
+            </div>
+          ))}
+          {pastSessions.length === 0 && <div className="code-sessions-empty">No past sessions yet</div>}
+        </div>
+      </aside>
+
+      <div className="code-view">
       <div className="code-toolbar">
         <select
           value={projectId}
@@ -276,6 +329,7 @@ export default function CodeView() {
       )}
 
       <div className="terminal-container" ref={termContainerRef} />
+      </div>
     </div>
   );
 }
