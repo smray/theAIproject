@@ -53,6 +53,7 @@ pub fn run() {
             db::append_message,
             db::list_memories,
             db::add_memory,
+            db::update_memory,
             db::delete_memory,
             db::get_memory_context,
             mcp::get_mcp_servers_config,

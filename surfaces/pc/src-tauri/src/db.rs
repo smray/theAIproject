@@ -234,6 +234,17 @@ pub fn add_memory(db: State<Db>, category: String, content: String) -> Result<i6
 }
 
 #[tauri::command]
+pub fn update_memory(db: State<Db>, id: i64, category: String, content: String) -> Result<(), String> {
+    let conn = db.0.lock().unwrap();
+    conn.execute(
+        "UPDATE memories SET category = ?1, content = ?2 WHERE id = ?3",
+        rusqlite::params![category, content, id],
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
 pub fn delete_memory(db: State<Db>, id: i64) -> Result<(), String> {
     let conn = db.0.lock().unwrap();
     conn.execute("DELETE FROM memories WHERE id = ?1", [id])

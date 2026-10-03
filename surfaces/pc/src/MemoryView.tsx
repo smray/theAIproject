@@ -15,6 +15,8 @@ export default function MemoryView() {
   const [memories, setMemories] = useState<MemoryInfo[]>([]);
   const [category, setCategory] = useState<string>("project");
   const [content, setContent] = useState("");
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingContent, setEditingContent] = useState("");
 
   function refresh() {
     invoke<MemoryInfo[]>("list_memories").then(setMemories).catch(() => undefined);
@@ -31,6 +33,22 @@ export default function MemoryView() {
 
   async function remove(id: number) {
     await invoke("delete_memory", { id }).catch(() => undefined);
+    refresh();
+  }
+
+  function startEdit(m: MemoryInfo) {
+    setEditingId(m.id);
+    setEditingContent(m.content);
+  }
+
+  async function saveEdit(m: MemoryInfo) {
+    const trimmed = editingContent.trim();
+    if (trimmed && trimmed !== m.content) {
+      await invoke("update_memory", { id: m.id, category: m.category, content: trimmed }).catch(
+        () => undefined,
+      );
+    }
+    setEditingId(null);
     refresh();
   }
 
@@ -73,14 +91,38 @@ export default function MemoryView() {
           return (
             <div key={cat} className="memory-group">
               <h3>{cat}</h3>
-              {items.map((m) => (
-                <div key={m.id} className="memory-item">
-                  <span>{m.content}</span>
-                  <button type="button" onClick={() => remove(m.id)} title="Delete">
-                    ✕
-                  </button>
-                </div>
-              ))}
+              {items.map((m) =>
+                editingId === m.id ? (
+                  <div key={m.id} className="memory-item memory-item-editing">
+                    <input
+                      type="text"
+                      value={editingContent}
+                      onChange={(e) => setEditingContent(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") saveEdit(m);
+                        if (e.key === "Escape") setEditingId(null);
+                      }}
+                      autoFocus
+                    />
+                    <button type="button" onClick={() => saveEdit(m)} title="Save">
+                      ✓
+                    </button>
+                    <button type="button" onClick={() => setEditingId(null)} title="Cancel">
+                      ✕
+                    </button>
+                  </div>
+                ) : (
+                  <div key={m.id} className="memory-item" onDoubleClick={() => startEdit(m)}>
+                    <span>{m.content}</span>
+                    <button type="button" onClick={() => startEdit(m)} title="Edit">
+                      ✎
+                    </button>
+                    <button type="button" onClick={() => remove(m.id)} title="Delete">
+                      ✕
+                    </button>
+                  </div>
+                ),
+              )}
             </div>
           );
         })}

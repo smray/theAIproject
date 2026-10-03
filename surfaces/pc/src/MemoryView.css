@@ -103,6 +103,25 @@
   color: #8a3b33;
 }
 
+.memory-item-editing {
+  gap: 8px;
+}
+
+.memory-item-editing input {
+  flex: 1;
+  font-family: var(--font-body);
+  font-size: 13px;
+  padding: 4px 8px;
+  border: 1px solid var(--accent);
+  border-radius: 3px;
+  background: var(--warm-white);
+  color: var(--ink);
+}
+
+.memory-item-editing button:first-of-type:hover {
+  color: #4a8a5f;
+}
+
 .memory-empty {
   color: var(--mist);
   font-style: italic;
