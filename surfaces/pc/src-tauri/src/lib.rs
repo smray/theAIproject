@@ -1,7 +1,11 @@
+mod agents;
 mod code_session;
 mod db;
+mod mcp;
+mod research;
 
 use code_session::CodeSessionState;
+use mcp::McpState;
 use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -11,8 +15,10 @@ pub fn run() {
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_dialog::init())
         .manage(CodeSessionState::default())
+        .manage(McpState::default())
         .setup(|app| {
             let database = db::init(&app.handle());
+            agents::seed_default_agents(&database);
             app.manage(database);
             Ok(())
         })
@@ -34,6 +40,16 @@ pub fn run() {
             db::add_memory,
             db::delete_memory,
             db::get_memory_context,
+            mcp::get_mcp_servers_config,
+            mcp::save_mcp_servers_config,
+            mcp::connect_mcp_server,
+            mcp::disconnect_mcp_server,
+            mcp::list_mcp_tools,
+            mcp::call_mcp_tool,
+            research::search_journal_articles,
+            agents::list_agents,
+            agents::save_agent,
+            agents::delete_agent,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

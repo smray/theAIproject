@@ -1,9 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import {
   type ChatMessage,
+  type GatewayTool,
   getGatewayUrl,
   listModels,
+  runToolLoop,
   setGatewayUrl,
   streamChatCompletion,
 } from "./gateway";
@@ -12,6 +18,7 @@ import "./ChatView.css";
 interface DisplayMessage extends ChatMessage {
   id: string;
   pending?: boolean;
+  status?: string;
 }
 
 interface SessionInfo {
@@ -21,11 +28,58 @@ interface SessionInfo {
   updated_at: number;
 }
 
+interface McpTool {
+  server: string;
+  name: string;
+  description: string;
+  input_schema: unknown;
+}
+
+interface McpServerConfig {
+  name: string;
+  command: string;
+  args: string[];
+}
+
 const FALLBACK_MODELS = ["chat-default", "chat-fast", "chat-batch"];
 const MEMORY_MARKER = /\[MEMORY:(user|feedback|project|reference)\]\s*(.+)/i;
 
 function newId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function Markdown({ text }: { text: string }) {
+  return (
+    <ReactMarkdown
+      remarkPlugins={[remarkGfm]}
+      components={{
+        code(props) {
+          const { children, className, ...rest } = props;
+          const match = /language-(\w+)/.exec(className || "");
+          const inline = !match && !String(children).includes("\n");
+          if (inline) {
+            return (
+              <code className="inline-code" {...rest}>
+                {children}
+              </code>
+            );
+          }
+          return (
+            <SyntaxHighlighter
+              style={oneDark}
+              language={match?.[1] || "text"}
+              PreTag="div"
+              customStyle={{ margin: 0, borderRadius: 6, fontSize: 13 }}
+            >
+              {String(children).replace(/\n$/, "")}
+            </SyntaxHighlighter>
+          );
+        },
+      }}
+    >
+      {text}
+    </ReactMarkdown>
+  );
 }
 
 export default function ChatView() {
@@ -39,6 +93,12 @@ export default function ChatView() {
   const [error, setError] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [gatewayUrlInput, setGatewayUrlInput] = useState(getGatewayUrl());
+  const [showMcp, setShowMcp] = useState(false);
+  const [mcpServers, setMcpServers] = useState<McpServerConfig[]>([]);
+  const [mcpTools, setMcpTools] = useState<McpTool[]>([]);
+  const [newMcpName, setNewMcpName] = useState("");
+  const [newMcpCommand, setNewMcpCommand] = useState("npx");
+  const [newMcpArgs, setNewMcpArgs] = useState("");
 
   const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -47,8 +107,14 @@ export default function ChatView() {
     invoke<SessionInfo[]>("list_sessions", { view: "chat" }).then(setSessions).catch(() => undefined);
   }
 
+  function refreshMcpTools() {
+    invoke<McpTool[]>("list_mcp_tools").then(setMcpTools).catch(() => undefined);
+  }
+
   useEffect(() => {
     refreshSessions();
+    refreshMcpTools();
+    invoke<McpServerConfig[]>("get_mcp_servers_config").then(setMcpServers).catch(() => undefined);
     listModels()
       .then((list) => {
         if (list.length > 0) {
@@ -94,14 +160,51 @@ export default function ChatView() {
     return id;
   }
 
-  /** Detects a trailing [MEMORY:category] marker in a completed response, saves it, and
-   *  returns the text with that line stripped so it isn't shown to the user verbatim. */
   async function extractAndSaveMemory(text: string): Promise<string> {
     const match = text.match(MEMORY_MARKER);
     if (!match) return text;
     const [full, category, content] = match;
     await invoke("add_memory", { category, content: content.trim() }).catch(() => undefined);
     return text.replace(full, "").trimEnd();
+  }
+
+  async function addMcpServer() {
+    if (!newMcpName.trim() || !newMcpCommand.trim()) return;
+    const config: McpServerConfig = {
+      name: newMcpName.trim(),
+      command: newMcpCommand.trim(),
+      args: newMcpArgs.trim() ? newMcpArgs.trim().split(/\s+/) : [],
+    };
+    const updated = [...mcpServers.filter((s) => s.name !== config.name), config];
+    setMcpServers(updated);
+    await invoke("save_mcp_servers_config", { servers: updated }).catch(() => undefined);
+    setNewMcpName("");
+    setNewMcpArgs("");
+  }
+
+  async function connectMcpServer(config: McpServerConfig) {
+    setError(null);
+    try {
+      await invoke("connect_mcp_server", { config });
+      refreshMcpTools();
+    } catch (err) {
+      setError(`Failed to connect ${config.name}: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+
+  async function disconnectMcpServer(name: string) {
+    await invoke("disconnect_mcp_server", { name }).catch(() => undefined);
+    refreshMcpTools();
+  }
+
+  async function removeMcpServerConfig(name: string) {
+    const updated = mcpServers.filter((s) => s.name !== name);
+    setMcpServers(updated);
+    await invoke("save_mcp_servers_config", { servers: updated }).catch(() => undefined);
+  }
+
+  function setStatus(assistantId: string, status: string) {
+    setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, status } : m)));
   }
 
   async function handleSend() {
@@ -138,17 +241,45 @@ export default function ChatView() {
             },
           ]
         : [];
+      const outgoingHistory = [...systemPrelude, ...history.map(({ role, content }) => ({ role, content }))];
 
-      await streamChatCompletion(
-        model,
-        [...systemPrelude, ...history.map(({ role, content }) => ({ role, content }))],
-        (delta) => {
-          setMessages((prev) =>
-            prev.map((m) => (m.id === assistantId ? { ...m, content: m.content + delta } : m)),
-          );
-        },
-        controller.signal,
-      );
+      if (mcpTools.length > 0) {
+        const tools: GatewayTool[] = mcpTools.map((t) => ({
+          type: "function",
+          function: {
+            name: `${t.server}__${t.name}`,
+            description: t.description,
+            parameters: t.input_schema,
+          },
+        }));
+        const finalText = await runToolLoop(
+          model,
+          outgoingHistory,
+          tools,
+          async (toolName, args) => {
+            const sepIdx = toolName.indexOf("__");
+            const server = toolName.slice(0, sepIdx);
+            const tool = toolName.slice(sepIdx + 2);
+            return invoke("call_mcp_tool", { server, tool, arguments: args });
+          },
+          (status) => setStatus(assistantId, status),
+          controller.signal,
+        );
+        setMessages((prev) =>
+          prev.map((m) => (m.id === assistantId ? { ...m, content: finalText, status: undefined } : m)),
+        );
+      } else {
+        await streamChatCompletion(
+          model,
+          outgoingHistory,
+          (delta) => {
+            setMessages((prev) =>
+              prev.map((m) => (m.id === assistantId ? { ...m, content: m.content + delta } : m)),
+            );
+          },
+          controller.signal,
+        );
+      }
     } catch (err) {
       if ((err as Error).name !== "AbortError") {
         setError(err instanceof Error ? err.message : String(err));
@@ -159,7 +290,7 @@ export default function ChatView() {
         prev.map((m) => {
           if (m.id !== assistantId) return m;
           finalContent = m.content;
-          return { ...m, pending: false };
+          return { ...m, pending: false, status: undefined };
         }),
       );
       setIsStreaming(false);
@@ -199,6 +330,8 @@ export default function ChatView() {
       })
       .catch(() => undefined);
   }
+
+  const connectedServerNames = new Set(mcpTools.map((t) => t.server));
 
   return (
     <div className="chat-layout">
@@ -242,6 +375,19 @@ export default function ChatView() {
               </option>
             ))}
           </select>
+          {mcpTools.length > 0 && (
+            <span className="mcp-badge" title={mcpTools.map((t) => t.name).join(", ")}>
+              🔌 {mcpTools.length} tool{mcpTools.length === 1 ? "" : "s"}
+            </span>
+          )}
+          <button
+            className="icon-button"
+            onClick={() => setShowMcp((s) => !s)}
+            title="MCP servers"
+            type="button"
+          >
+            🔌
+          </button>
           <button
             className="icon-button"
             onClick={() => setShowSettings((s) => !s)}
@@ -268,6 +414,59 @@ export default function ChatView() {
           </div>
         )}
 
+        {showMcp && (
+          <div className="mcp-panel">
+            <div className="mcp-server-list">
+              {mcpServers.map((s) => {
+                const connected = connectedServerNames.has(s.name);
+                return (
+                  <div key={s.name} className="mcp-server-item">
+                    <span className={`mcp-dot ${connected ? "connected" : ""}`} />
+                    <span className="mcp-server-name">{s.name}</span>
+                    <code className="mcp-server-cmd">
+                      {s.command} {s.args.join(" ")}
+                    </code>
+                    {connected ? (
+                      <button type="button" onClick={() => disconnectMcpServer(s.name)}>
+                        Disconnect
+                      </button>
+                    ) : (
+                      <button type="button" onClick={() => connectMcpServer(s)}>
+                        Connect
+                      </button>
+                    )}
+                    <button type="button" className="mcp-remove" onClick={() => removeMcpServerConfig(s.name)}>
+                      ✕
+                    </button>
+                  </div>
+                );
+              })}
+              {mcpServers.length === 0 && (
+                <div className="session-empty">
+                  No MCP servers configured. Add one below - e.g. name "filesystem", command "npx",
+                  args "-y @modelcontextprotocol/server-filesystem C:\Users\you\Documents"
+                </div>
+              )}
+            </div>
+            <div className="mcp-add">
+              <input placeholder="name" value={newMcpName} onChange={(e) => setNewMcpName(e.target.value)} />
+              <input
+                placeholder="command (e.g. npx)"
+                value={newMcpCommand}
+                onChange={(e) => setNewMcpCommand(e.target.value)}
+              />
+              <input
+                placeholder="args (space-separated)"
+                value={newMcpArgs}
+                onChange={(e) => setNewMcpArgs(e.target.value)}
+              />
+              <button type="button" onClick={addMcpServer}>
+                Add
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="messages" ref={scrollRef}>
           {messages.length === 0 && (
             <div className="empty-state">
@@ -278,8 +477,9 @@ export default function ChatView() {
             <div key={m.id} className={`message message-${m.role}`}>
               <div className="message-role">{m.role === "user" ? "You" : model}</div>
               <div className="message-content">
-                {m.content}
-                {m.pending && m.content === "" && <span className="cursor">●</span>}
+                {m.role === "assistant" ? <Markdown text={m.content} /> : m.content}
+                {m.status && <div className="tool-status">{m.status}</div>}
+                {m.pending && m.content === "" && !m.status && <span className="cursor">●</span>}
               </div>
             </div>
           ))}

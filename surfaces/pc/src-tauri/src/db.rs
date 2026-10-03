@@ -34,6 +34,15 @@ pub fn init(app: &AppHandle) -> Db {
             content TEXT NOT NULL,
             created_at INTEGER NOT NULL
         );
+        CREATE TABLE IF NOT EXISTS agents (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            description TEXT NOT NULL,
+            system_prompt TEXT NOT NULL,
+            mcp_servers TEXT NOT NULL,
+            use_research_tool INTEGER NOT NULL,
+            created_at INTEGER NOT NULL
+        );
         CREATE TABLE IF NOT EXISTS memories (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             category TEXT NOT NULL,
@@ -76,6 +85,8 @@ pub struct MemoryInfo {
     pub content: String,
     pub created_at: i64,
 }
+
+// Agent CRUD lives in agents.rs, not here - see that file's header comment for why.
 
 #[tauri::command]
 pub fn list_sessions(db: State<Db>, view: String) -> Result<Vec<SessionInfo>, String> {

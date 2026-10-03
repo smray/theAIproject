@@ -111,6 +111,138 @@
   padding: 6px 10px;
 }
 
+.mcp-badge {
+  font-size: 11px;
+  color: var(--accent);
+  background: var(--accent-pale);
+  padding: 4px 8px;
+  border-radius: 10px;
+}
+
+.mcp-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 24px;
+  background: var(--stone);
+  border-bottom: 1px solid var(--ash);
+  flex-shrink: 0;
+}
+
+.mcp-server-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mcp-server-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.mcp-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--mist);
+  flex-shrink: 0;
+}
+
+.mcp-dot.connected {
+  background: #4a8a5f;
+}
+
+.mcp-server-name {
+  font-weight: 400;
+  color: var(--ink);
+  min-width: 100px;
+}
+
+.mcp-server-cmd {
+  flex: 1;
+  color: var(--mist);
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mcp-server-item button {
+  font-size: 11px;
+  padding: 4px 10px;
+  border: 1px solid var(--ash);
+  border-radius: 4px;
+  background: var(--warm-white);
+  color: var(--slate);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.mcp-remove {
+  color: var(--mist) !important;
+  border: none !important;
+  background: none !important;
+}
+
+.mcp-add {
+  display: flex;
+  gap: 6px;
+}
+
+.mcp-add input {
+  flex: 1;
+  font-size: 12px;
+  padding: 6px 10px;
+  border: 1px solid var(--ash);
+  border-radius: 4px;
+  background: var(--warm-white);
+  color: var(--ink);
+}
+
+.mcp-add button {
+  font-size: 12px;
+  padding: 6px 14px;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  background: var(--accent);
+  color: var(--warm-white);
+  cursor: pointer;
+}
+
+.tool-status {
+  font-size: 12px;
+  font-style: italic;
+  color: var(--accent);
+  margin-top: 6px;
+}
+
+.inline-code {
+  background: var(--accent-pale);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 0.9em;
+}
+
+.message-content p {
+  margin: 0 0 10px;
+}
+
+.message-content p:last-child {
+  margin-bottom: 0;
+}
+
+.message-content ul,
+.message-content ol {
+  margin: 0 0 10px;
+  padding-left: 22px;
+}
+
+.message-content pre {
+  margin: 0 0 10px;
+}
+
 .icon-button {
   background: none;
   border: 1px solid var(--ash);
