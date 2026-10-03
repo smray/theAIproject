@@ -88,6 +88,82 @@
   color: var(--ink);
   font-family: var(--font-body);
   font-weight: 300;
+  position: relative;
+}
+
+.chat-view.drag-over {
+  outline: 2px dashed var(--accent);
+  outline-offset: -4px;
+}
+
+.drop-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(122, 106, 82, 0.08);
+  color: var(--accent);
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 16px;
+  pointer-events: none;
+}
+
+.attachment-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px 24px 0;
+  flex-shrink: 0;
+}
+
+.attachment-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--slate);
+  background: var(--accent-pale);
+  border-radius: 12px;
+  padding: 4px 10px;
+}
+
+.attachment-chip button {
+  background: none;
+  border: none;
+  color: var(--mist);
+  cursor: pointer;
+  font-size: 11px;
+  padding: 0;
+}
+
+.attachment-chip button:hover {
+  color: #8a3b33;
+}
+
+.attach-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border: 1px solid var(--ash);
+  border-radius: 6px;
+  color: var(--mist);
+  cursor: pointer;
+  align-self: flex-end;
+}
+
+.attach-button:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.attach-button input[type="file"] {
+  display: none;
 }
 
 .chat-toolbar {

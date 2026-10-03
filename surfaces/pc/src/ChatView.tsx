@@ -77,8 +77,19 @@ const RESEARCH_TOOL: GatewayTool = {
   },
 };
 
+interface Attachment {
+  id: string;
+  name: string;
+  content: string;
+  truncated: boolean;
+}
+
 const FALLBACK_MODELS = ["chat-default", "chat-fast", "chat-batch"];
 const MEMORY_MARKER = /\[MEMORY:(user|feedback|project|reference)\]\s*(.+)/i;
+// Plain text/code only, no Tauri fs/vision plumbing - dropped files are read with the browser's
+// own File API (FileReader), so this needs no new capability permissions at all. Caps at ~12k
+// tokens/file so one dropped log file can't blow out the whole context window silently.
+const MAX_ATTACHMENT_CHARS = 50_000;
 
 function newId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -139,6 +150,8 @@ export default function ChatView() {
   const [agentId, setAgentId] = useState<string>("");
   const [projects, setProjects] = useState<ProjectInfo[]>([]);
   const [projectId, setProjectId] = useState<string>("");
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
 
   const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -254,17 +267,93 @@ export default function ChatView() {
     setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, status } : m)));
   }
 
+  function readFileAsText(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(typeof reader.result === "string" ? reader.result : "");
+      reader.onerror = () => reject(reader.error ?? new Error("Failed to read file"));
+      reader.readAsText(file);
+    });
+  }
+
+  async function addAttachments(files: FileList | File[]) {
+    for (const file of Array.from(files)) {
+      // Heuristic, not a real content-type check - good enough to keep binary drops (images,
+      // PDFs) from landing as garbled text in the chat. No vision/base64 path here; attaching an
+      // image would need a model that accepts image content blocks, not assumed yet.
+      const looksBinary = /\.(png|jpe?g|gif|webp|pdf|zip|exe|dll|bin|ico)$/i.test(file.name);
+      if (looksBinary) {
+        setError(`Can't attach "${file.name}" - only text/code files are supported right now.`);
+        continue;
+      }
+      try {
+        const text = await readFileAsText(file);
+        const truncated = text.length > MAX_ATTACHMENT_CHARS;
+        setAttachments((prev) => [
+          ...prev,
+          {
+            id: newId(),
+            name: file.name,
+            content: truncated ? text.slice(0, MAX_ATTACHMENT_CHARS) : text,
+            truncated,
+          },
+        ]);
+      } catch {
+        setError(`Couldn't read "${file.name}" as text.`);
+      }
+    }
+  }
+
+  function removeAttachment(id: string) {
+    setAttachments((prev) => prev.filter((a) => a.id !== id));
+  }
+
+  function handleDragOver(e: React.DragEvent) {
+    e.preventDefault();
+    setIsDraggingOver(true);
+  }
+
+  function handleDragLeave(e: React.DragEvent) {
+    e.preventDefault();
+    setIsDraggingOver(false);
+  }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setIsDraggingOver(false);
+    if (e.dataTransfer.files.length > 0) addAttachments(e.dataTransfer.files);
+  }
+
   async function handleSend() {
-    const text = input.trim();
-    if (!text || isStreaming) return;
+    const typedText = input.trim();
+    if ((!typedText && attachments.length === 0) || isStreaming) return;
 
     setError(null);
     setInput("");
+    const pendingAttachments = attachments;
+    setAttachments([]);
 
-    const sid = await ensureSession(text);
-    await invoke("append_message", { sessionId: sid, role: "user", content: text }).catch(() => undefined);
+    const attachmentNote =
+      pendingAttachments.length > 0
+        ? `\n\n📎 ${pendingAttachments.map((a) => a.name).join(", ")}`
+        : "";
+    const displayText = typedText + attachmentNote;
+    const apiText =
+      pendingAttachments.length > 0
+        ? `${pendingAttachments
+            .map(
+              (a) =>
+                `Attached file: ${a.name}${a.truncated ? " (truncated)" : ""}\n\`\`\`\n${a.content}\n\`\`\``,
+            )
+            .join("\n\n")}\n\n${typedText}`
+        : typedText;
 
-    const userMsg: DisplayMessage = { id: newId(), role: "user", content: text };
+    const sid = await ensureSession(displayText);
+    await invoke("append_message", { sessionId: sid, role: "user", content: displayText }).catch(
+      () => undefined,
+    );
+
+    const userMsg: DisplayMessage = { id: newId(), role: "user", content: displayText };
     const assistantId = newId();
     const history = [...messages, userMsg];
     setMessages([...history, { id: assistantId, role: "assistant", content: "", pending: true }]);
@@ -295,7 +384,14 @@ export default function ChatView() {
             `worth persisting, not on every message.`,
         });
       }
-      const outgoingHistory = [...systemPrelude, ...history.map(({ role, content }) => ({ role, content }))];
+      // The displayed/stored turn keeps the short "📎 filename" note; the model actually gets the
+      // full attached file content, swapped in only for this latest turn so history replayed on
+      // reload doesn't re-send every past attachment's full text on every future message.
+      const outgoingHistory = [
+        ...systemPrelude,
+        ...history.slice(0, -1).map(({ role, content }) => ({ role, content })),
+        { role: "user" as const, content: apiText },
+      ];
 
       const tools: GatewayTool[] = mcpTools.map((t) => ({
         type: "function",
@@ -422,7 +518,13 @@ export default function ChatView() {
         </div>
       </aside>
 
-      <div className="chat-view">
+      <div
+        className={`chat-view ${isDraggingOver ? "drag-over" : ""}`}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
+        {isDraggingOver && <div className="drop-overlay">Drop files to attach as context</div>}
         <div className="chat-toolbar">
           <select
             className="model-select"
@@ -592,12 +694,36 @@ export default function ChatView() {
           </div>
         )}
 
+        {attachments.length > 0 && (
+          <div className="attachment-list">
+            {attachments.map((a) => (
+              <span key={a.id} className="attachment-chip" title={a.truncated ? "Truncated to fit" : a.name}>
+                📎 {a.name}
+                <button type="button" onClick={() => removeAttachment(a.id)} title="Remove">
+                  ✕
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+
         <div className="composer">
+          <label className="attach-button" title="Attach a text/code file">
+            📎
+            <input
+              type="file"
+              multiple
+              onChange={(e) => {
+                if (e.target.files) addAttachments(e.target.files);
+                e.target.value = "";
+              }}
+            />
+          </label>
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Message the AI..."
+            placeholder="Message the AI... (drag files in, or drop them anywhere here, to attach)"
             rows={2}
           />
           {isStreaming ? (
@@ -605,7 +731,12 @@ export default function ChatView() {
               Stop
             </button>
           ) : (
-            <button type="button" className="send-button" onClick={handleSend} disabled={!input.trim()}>
+            <button
+              type="button"
+              className="send-button"
+              onClick={handleSend}
+              disabled={!input.trim() && attachments.length === 0}
+            >
               Send
             </button>
           )}
