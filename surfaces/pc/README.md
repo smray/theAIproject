@@ -37,6 +37,13 @@ overnight push, at the user's explicit direction to not stop at phase boundaries
   is saved per session, but not a message-by-message transcript — Aider already writes its own
   `.aider.chat.history.md` inside the working directory, which is the actual conversation record
   for that surface, so this doesn't duplicate it.
+- **System tray + global shortcut**: closing the window hides it instead of quitting (so an
+  in-flight Code session or MCP connection survives an accidental click), a left tray-icon click
+  or `Ctrl+Shift+Space` toggles the window from anywhere, and right-click gives Show/Hide + Quit.
+  Verified by `cargo check` and by checking every new capability identifier
+  (`core:tray:default`, `core:window:allow-hide/show/set-focus`, `global-shortcut:allow-register/
+  unregister`) against the installed plugin's own permission manifests — not visually tested (see
+  below).
 - **Memory (FR7-lite)**: the same typed schema the requirements doc specifies for Claude Code's
   own auto-memory (`user` / `feedback` / `project` / `reference` categories), stored in the same
   SQLite database, with a **Memory** tab to view/add/delete entries by hand. Automatically
@@ -64,6 +71,12 @@ overnight push, at the user's explicit direction to not stop at phase boundaries
   [GIT-AND-BUILD-LESSONS.md](../../docs/GIT-AND-BUILD-LESSONS.md) already recorded from
   KiwiProductivity's Gradle work. **Actually opening the app and running a real Code session is
   the first real test.**
+- This environment does have a computer-use tool capable of driving a real desktop window (it's
+  how the Android emulator verification in [the Android surface's
+  README](../android/README.md) got done), so this is no longer a hard blocker, just not done
+  yet — it requires an explicit on-screen permission grant from whoever is at the keyboard, which
+  isn't appropriate to force through unattended. Next session with the user present: `npm run
+  tauri dev` from this folder, then grant computer-use access to drive the actual window.
 
 ## Setting up Aider (required for the Code view — not bundled)
 
