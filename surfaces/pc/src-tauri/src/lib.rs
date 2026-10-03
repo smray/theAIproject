@@ -3,6 +3,7 @@ mod code_session;
 mod db;
 mod mcp;
 mod research;
+mod tray;
 
 use code_session::CodeSessionState;
 use mcp::McpState;
@@ -14,13 +15,26 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .manage(CodeSessionState::default())
         .manage(McpState::default())
         .setup(|app| {
             let database = db::init(&app.handle());
             agents::seed_default_agents(&database);
             app.manage(database);
+            tray::setup(app.handle())?;
             Ok(())
+        })
+        .on_window_event(|window, event| {
+            // Minimize-to-tray instead of quitting on the window close button - matches the
+            // "always one keystroke away" pattern competitor desktop AI apps use, so a long-
+            // running Code session (Aider) or MCP connection isn't killed by an accidental click.
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                if window.label() == "main" {
+                    api.prevent_close();
+                    window.hide().ok();
+                }
+            }
         })
         .invoke_handler(tauri::generate_handler![
             code_session::list_skills,
