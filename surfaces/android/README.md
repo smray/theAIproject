@@ -30,9 +30,17 @@ configuration on your phone:
       Revisit once at least one MCP server exists to point RikkaHub at.
 - [ ] Custom HTTP auth headers — not needed yet; only relevant once the gateway is reachable
       beyond bare LAN access (see the Cloudflare Tunnel discussion — currently deferred).
-- [ ] Match the [shared design tokens](../../design/design-tokens.md) as closely as RikkaHub's
-      own theming allows (likely Material You / light-dark only — confirm what's actually exposed
-      once the app is installed).
+- [x] Match the [shared design tokens](../../design/design-tokens.md) as closely as RikkaHub's
+      own theming allows. **Checked against RikkaHub's actual source** (not the "likely Material
+      You only" guess this item started as) — Settings → Theme has a real custom-theme editor
+      (`CustomTheme` data class: `primaryColorArgb`/`secondaryColorArgb`/`tertiaryColorArgb`,
+      Material 3 dynamic color generation from those three seeds) with JSON import/export of a
+      single theme object. [rikkahub-theme.json](rikkahub-theme.json) is that exact format,
+      mapping `--accent`/`--slate`/`--accent-light` from the design tokens onto
+      primary/secondary/tertiary — paste its contents into Settings → Theme → Import to apply.
+      Not yet actually applied on a device (same caveat as the rest of this doc — written against
+      real source, not yet re-run through the emulator to confirm the import dialog behaves as
+      read).
 - [ ] Fallback if a gap matters in practice: Open WebUI's installable PWA, pointed at
       `http://192.168.1.43:3000` (`lxc-ui`) — zero additional build cost, less native feel — keep
       as backup, not default.
