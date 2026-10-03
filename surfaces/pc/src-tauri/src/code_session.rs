@@ -48,7 +48,7 @@ pub struct ActiveSession {
 #[derive(Default)]
 pub struct CodeSessionState(pub Mutex<HashMap<String, ActiveSession>>);
 
-fn config_dir(app: &AppHandle) -> PathBuf {
+pub(crate) fn config_dir(app: &AppHandle) -> PathBuf {
     let dir = app
         .path()
         .app_config_dir()
@@ -81,7 +81,7 @@ fn hooks_config_path(app: &AppHandle) -> PathBuf {
     config_dir(app).join("hooks.json")
 }
 
-fn load_hooks(app: &AppHandle) -> HooksConfig {
+pub(crate) fn load_hooks(app: &AppHandle) -> HooksConfig {
     let path = hooks_config_path(app);
     std::fs::read_to_string(&path)
         .ok()
@@ -89,7 +89,7 @@ fn load_hooks(app: &AppHandle) -> HooksConfig {
         .unwrap_or_default()
 }
 
-fn run_hook_commands(commands: &[String], cwd: &PathBuf, event: &str, extra_env: &[(&str, &str)]) {
+pub(crate) fn run_hook_commands(commands: &[String], cwd: &PathBuf, event: &str, extra_env: &[(&str, &str)]) {
     for cmd in commands {
         if cmd.trim().is_empty() {
             continue;
@@ -179,7 +179,7 @@ pub struct StartSessionArgs {
 /// installer and running it on a different machine/path would just break. Properly solving that
 /// needs a frozen standalone build (e.g. PyInstaller) - not attempted here; see
 /// surfaces/pc/README.md's Code view section. Instead: resolve it the normal CLI-tool way.
-fn resolve_aider_path() -> Result<PathBuf, String> {
+pub(crate) fn resolve_aider_path() -> Result<PathBuf, String> {
     if let Ok(override_path) = std::env::var("AI_PROJECT_AIDER_PATH") {
         let p = PathBuf::from(override_path);
         if p.exists() {

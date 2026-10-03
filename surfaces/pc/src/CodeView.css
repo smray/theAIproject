@@ -1,11 +1,18 @@
-.code-layout {
+/* Code view: chat-first. Light like Chat; dark only for code, diffs and the terminal. */
+
+.cv-layout {
   display: flex;
   flex: 1;
   min-height: 0;
+  background: var(--warm-white);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-weight: 300;
 }
 
-.code-sidebar {
-  width: 220px;
+/* ---- sidebar ---- */
+.cv-sidebar {
+  width: 230px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
@@ -13,21 +20,30 @@
   border-right: 1px solid var(--ash);
 }
 
-.code-sidebar-label {
-  padding: 14px 16px 6px;
-  font-size: 11px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--mist);
+.cv-new {
+  margin: 12px;
+  padding: 8px 12px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  background: var(--accent);
+  color: var(--warm-white);
+  cursor: pointer;
 }
 
-.code-sessions-list {
+.cv-new:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.cv-session-list {
   flex: 1;
   overflow-y: auto;
-  padding: 0 8px;
+  padding: 0 8px 8px;
 }
 
-.code-session-item {
+.cv-session {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -35,21 +51,40 @@
   padding: 8px 10px;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 13px;
   color: var(--slate);
 }
 
-.code-session-item:hover {
+.cv-session:hover,
+.cv-session.active {
   background: var(--accent-pale);
 }
 
-.code-session-title {
+.cv-session.active {
+  color: var(--ink);
+}
+
+.cv-session-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.cv-session-title {
+  font-size: 13px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.code-session-delete {
+.cv-session-sub {
+  font-size: 11px;
+  color: var(--mist);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cv-session-del {
   background: none;
   border: none;
   color: var(--mist);
@@ -58,57 +93,41 @@
   flex-shrink: 0;
 }
 
-.code-session-delete:hover {
+.cv-session-del:hover {
   color: #8a3b33;
 }
 
-.code-sessions-empty {
-  padding: 10px;
+.cv-empty-note {
+  padding: 8px 10px;
   font-size: 12px;
   color: var(--mist);
   font-style: italic;
 }
 
-.code-view {
+/* ---- main column ---- */
+.cv-main {
   display: flex;
   flex-direction: column;
   flex: 1;
+  min-width: 0;
   min-height: 0;
-  background: var(--ink);
 }
 
-.code-toolbar {
+.cv-toolbar {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 24px;
+  gap: 8px;
+  padding: 10px 20px;
   background: var(--stone);
   border-bottom: 1px solid var(--ash);
   flex-shrink: 0;
   flex-wrap: wrap;
 }
 
-.folder-button {
-  font-family: var(--font-body);
-  font-size: 13px;
-  padding: 6px 12px;
-  border: 1px solid var(--ash);
-  border-radius: 4px;
-  background: var(--warm-white);
-  color: var(--slate);
-  cursor: pointer;
-  max-width: 280px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.folder-button:disabled {
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-.code-toolbar select {
+.cv-toolbar select,
+.cv-folder,
+.cv-skills summary,
+.cv-icon {
   font-family: var(--font-body);
   font-size: 13px;
   color: var(--slate);
@@ -116,57 +135,179 @@
   border: 1px solid var(--ash);
   border-radius: 4px;
   padding: 6px 10px;
-}
-
-.skill-picker {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  flex: 1;
-}
-
-.skill-empty {
-  font-size: 12px;
-  color: var(--mist);
-  font-style: italic;
-}
-
-.skill-chip {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: var(--slate);
-  background: var(--accent-pale);
-  border-radius: 12px;
-  padding: 4px 10px;
   cursor: pointer;
 }
 
-.hooks-panel {
+.cv-folder {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cv-folder:disabled,
+.cv-toolbar select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.cv-icon.active {
+  background: var(--accent-pale);
+  border-color: var(--accent);
+}
+
+.cv-spacer {
+  flex: 1;
+}
+
+.cv-skills {
+  position: relative;
+}
+
+.cv-skills summary {
+  list-style: none;
+}
+
+.cv-skills summary::-webkit-details-marker {
+  display: none;
+}
+
+.cv-skills-pop {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 10;
+  min-width: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  background: var(--warm-white);
+  border: 1px solid var(--ash);
+  border-radius: 6px;
+  box-shadow: 0 4px 14px rgba(26, 35, 50, 0.12);
+  font-size: 13px;
+}
+
+.cv-skills-pop label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.cv-seg {
+  display: flex;
+  border: 1px solid var(--ash);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.cv-seg button {
+  font-family: var(--font-body);
+  font-size: 13px;
+  padding: 6px 14px;
+  border: none;
+  background: var(--warm-white);
+  color: var(--slate);
+  cursor: pointer;
+}
+
+.cv-seg button.active {
+  background: var(--ink);
+  color: var(--warm-white);
+}
+
+.cv-muted {
+  color: var(--mist);
+}
+
+/* ---- buttons ---- */
+.cv-btn {
+  font-family: var(--font-body);
+  font-size: 13px;
+  padding: 8px 16px;
+  border: 1px solid var(--ash);
+  border-radius: 6px;
+  background: var(--warm-white);
+  color: var(--slate);
+  cursor: pointer;
+}
+
+.cv-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.cv-btn-primary {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--warm-white);
+}
+
+.cv-btn-stop {
+  background: #8a3b33;
+  border-color: #8a3b33;
+  color: var(--warm-white);
+}
+
+.cv-link {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  padding: 4px 12px 8px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--accent);
+  cursor: pointer;
+}
+
+/* ---- banners / hooks ---- */
+.cv-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 10px 20px 0;
+  padding: 10px 14px;
+  background: #f9ebea;
+  border: 1px solid #e0a9a3;
+  color: #8a3b33;
+  font-size: 13px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.cv-error button {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.cv-hooks {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding: 14px 24px;
+  padding: 14px 20px;
   background: var(--stone);
   border-bottom: 1px solid var(--ash);
   flex-shrink: 0;
 }
 
-.hooks-field {
+.cv-hooks-field {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
-.hooks-field label {
+.cv-hooks-field label {
   font-size: 11px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--mist);
 }
 
-.hooks-field textarea {
+.cv-hooks-field textarea {
   font-family: "Cascadia Code", Consolas, monospace;
   font-size: 12px;
   padding: 8px 10px;
@@ -177,19 +318,536 @@
   resize: vertical;
 }
 
-.hooks-panel button {
+.cv-hooks .cv-btn {
   align-self: flex-start;
+}
+
+/* ---- chat ---- */
+.cv-body {
+  flex: 1;
+  min-height: 0;
+}
+
+.cv-chat {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+.cv-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 24px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.cv-hero {
+  margin: auto;
+  max-width: 560px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.cv-hero h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 30px;
+  color: var(--ink);
+}
+
+.cv-hero p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--slate);
+}
+
+.cv-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.cv-suggestions button,
+.cv-recent-item {
   font-family: var(--font-body);
   font-size: 13px;
-  padding: 6px 16px;
-  border: 1px solid var(--accent);
-  border-radius: 4px;
-  background: var(--accent);
-  color: var(--warm-white);
+  padding: 8px 14px;
+  border: 1px solid var(--ash);
+  border-radius: 18px;
+  background: var(--stone);
+  color: var(--slate);
   cursor: pointer;
 }
 
-.terminal-container {
+.cv-suggestions button:hover,
+.cv-recent-item:hover {
+  background: var(--accent-pale);
+  border-color: var(--accent);
+}
+
+.cv-recent {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  width: 100%;
+  margin-top: 10px;
+}
+
+.cv-recent-label {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--mist);
+}
+
+.cv-recent-item {
+  border-radius: 6px;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cv-msg {
+  width: 100%;
+  max-width: 820px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cv-user {
+  align-items: flex-end;
+}
+
+.cv-bubble {
+  max-width: 85%;
+  padding: 10px 16px;
+  border-radius: 8px;
+  background: var(--ink);
+  color: var(--warm-white);
+  font-size: 15px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.cv-who {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--mist);
+}
+
+.cv-prose {
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.cv-prose p {
+  margin: 0 0 10px;
+}
+
+.cv-prose p:last-child {
+  margin-bottom: 0;
+}
+
+.cv-prose ul,
+.cv-prose ol {
+  margin: 0 0 10px;
+  padding-left: 22px;
+}
+
+.cv-prose .inline-code {
+  background: var(--accent-pale);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 0.9em;
+}
+
+.cv-working {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--accent);
+}
+
+.cv-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--accent-pale);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: cv-spin 0.9s linear infinite;
+}
+
+@keyframes cv-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---- edits & diffs ---- */
+.cv-edit {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--ash);
+  border-radius: 6px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.cv-edit-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: var(--stone);
+  border-bottom: 1px solid var(--ash);
+  font-size: 13px;
+}
+
+.cv-edit-file {
+  font-family: "Cascadia Code", Consolas, monospace;
+  font-size: 12.5px;
+  color: var(--ink);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cv-edit-count {
+  font-family: "Cascadia Code", Consolas, monospace;
+  font-size: 12px;
+}
+
+.cv-plus {
+  color: #1e6b3a;
+}
+
+.cv-minus {
+  color: #8a3b33;
+}
+
+.cv-diff {
+  margin: 0;
+  overflow-x: auto;
+  font-family: "Cascadia Code", Consolas, monospace;
+  font-size: 12.5px;
+  line-height: 1.55;
+  background: #fff;
+}
+
+.cv-diff-line {
+  padding: 0 12px;
+  white-space: pre;
+  min-width: max-content;
+}
+
+.cv-diff-add {
+  background: #e6f4ea;
+  color: #1e6b3a;
+}
+
+.cv-diff-del {
+  background: #fbeaea;
+  color: #8a3b33;
+}
+
+.cv-diff-hunk {
+  background: #eef0fa;
+  color: #5a5f96;
+}
+
+.cv-diff-meta {
+  color: var(--mist);
+  font-weight: 500;
+}
+
+.cv-diff-ctx {
+  color: var(--slate);
+}
+
+/* ---- turn result ---- */
+.cv-result {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cv-chip {
+  font-family: var(--font-body);
+  font-size: 12px;
+  padding: 4px 10px;
+  border: 1px solid var(--ash);
+  border-radius: 12px;
+  background: var(--stone);
+  color: var(--slate);
+}
+
+.cv-chip-commit {
+  cursor: pointer;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cv-chip-commit:hover,
+.cv-chip-commit.active {
+  background: var(--accent-pale);
+  border-color: var(--accent);
+}
+
+.cv-chip code,
+.cv-commit code {
+  font-family: "Cascadia Code", Consolas, monospace;
+  font-size: 11.5px;
+  color: var(--accent);
+}
+
+.cv-tokens {
+  font-size: 11px;
+  color: var(--mist);
+}
+
+.cv-problems {
+  padding: 10px 14px;
+  background: #fdf3e1;
+  border: 1px solid #e8cf9a;
+  border-radius: 6px;
+  color: #7a5a14;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.cv-pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  background: #f9ebea;
+  border-color: #e0a9a3;
+  color: #8a3b33;
+}
+
+.cv-notes {
+  font-size: 12px;
+  color: var(--mist);
+  line-height: 1.5;
+}
+
+.cv-details {
+  font-size: 12px;
+  color: var(--mist);
+}
+
+.cv-details summary {
+  cursor: pointer;
+  width: max-content;
+}
+
+.cv-raw {
+  margin: 8px 0 0;
+  padding: 10px 12px;
+  max-height: 260px;
+  overflow: auto;
+  background: var(--stone);
+  border-radius: 6px;
+  font-family: "Cascadia Code", Consolas, monospace;
+  font-size: 11.5px;
+  white-space: pre-wrap;
+  color: var(--slate);
+}
+
+.cv-badge {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: var(--accent-pale);
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.cv-badge-new,
+.cv-badge-created {
+  background: #e6f4ea;
+  color: #1e6b3a;
+}
+
+.cv-badge-removed {
+  background: #fbeaea;
+  color: #8a3b33;
+}
+
+/* ---- composer ---- */
+.cv-composer {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  width: 100%;
+  max-width: 868px;
+  margin: 0 auto;
+  padding: 14px 24px 18px;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.cv-composer textarea {
+  flex: 1;
+  resize: none;
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.5;
+  padding: 10px 14px;
+  border: 1px solid var(--ash);
+  border-radius: 8px;
+  background: var(--stone);
+  color: var(--ink);
+}
+
+.cv-composer textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.cv-composer textarea:disabled {
+  opacity: 0.6;
+}
+
+.cv-composer-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* ---- changes panel ---- */
+.cv-panel {
+  width: 340px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  background: var(--stone);
+  border-left: 1px solid var(--ash);
+}
+
+.cv-panel-section {
+  padding: 12px 0 6px;
+  border-bottom: 1px solid var(--ash);
+}
+
+.cv-panel-title {
+  padding: 0 14px 6px;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--mist);
+}
+
+.cv-file {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 14px;
+  font-size: 12.5px;
+}
+
+.cv-file-name {
+  font-family: "Cascadia Code", Consolas, monospace;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--slate);
+}
+
+.cv-commit {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  width: 100%;
+  padding: 5px 14px;
+  border: none;
+  background: none;
+  text-align: left;
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  color: var(--slate);
+  cursor: pointer;
+}
+
+.cv-commit span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cv-commit:hover,
+.cv-commit.active {
+  background: var(--accent-pale);
+}
+
+.cv-panel-diff {
+  padding-bottom: 12px;
+  border-bottom: none;
+}
+
+.cv-panel-diff .cv-diff {
+  border-top: 1px solid var(--ash);
+  border-bottom: 1px solid var(--ash);
+  font-size: 11.5px;
+  max-height: 420px;
+  overflow: auto;
+}
+
+/* ---- terminal mode ---- */
+.cv-terminal {
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  background: var(--ink);
+}
+
+.cv-terminal-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 20px;
+  background: var(--stone);
+  border-bottom: 1px solid var(--ash);
+  flex-shrink: 0;
+}
+
+.cv-terminal-hint {
+  font-size: 12px;
+  color: var(--mist);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cv-terminal-host {
   flex: 1;
   min-height: 0;
   padding: 10px;

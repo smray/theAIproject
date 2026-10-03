@@ -1,5 +1,6 @@
 mod agents;
 mod code_session;
+mod code_turn;
 mod db;
 mod mcp;
 mod projects;
@@ -18,6 +19,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .manage(CodeSessionState::default())
+        .manage(code_turn::CodeTurnState::default())
         .manage(McpState::default())
         .setup(|app| {
             let database = db::init(&app.handle());
@@ -45,6 +47,13 @@ pub fn run() {
             code_session::write_to_code_session,
             code_session::resize_code_session,
             code_session::stop_code_session,
+            code_turn::run_code_turn,
+            code_turn::stop_code_turn,
+            code_turn::end_code_session,
+            code_turn::register_code_session,
+            code_turn::list_code_sessions,
+            code_turn::forget_code_session,
+            code_turn::git_show,
             db::list_sessions,
             db::create_session,
             db::rename_session,

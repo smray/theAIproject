@@ -11,13 +11,33 @@ overnight push, at the user's explicit direction to not stop at phase boundaries
 
 - **Tauri 2 + React 19 + TypeScript**, two views sharing one window: **Chat** (unchanged from the
   original Phase 3 build) and **Code** (new).
-- **Code view**: a real PTY-backed terminal (via the `portable-pty` Rust crate, rendered with
-  xterm.js) running **Aider**, not a custom-built agentic loop. This is the plan's own documented
-  fallback — §4 of the integrated plan says "if [the headless-mode spike] falls short, Aider via
-  an embedded terminal pane is a known-working fallback that loses some polish but not
-  functionality." The spike itself (verifying whether Pi/Zero's headless mode exposes what a GUI
-  needs) was skipped entirely for time, not attempted and failed — going straight to the
-  documented fallback was a deliberate choice, not a retreat from a failed attempt.
+- **Code view**: chat-first ("vibe coding") front end on **Aider**, not a custom-built agentic
+  loop (the plan's own documented fallback — §4 says "if [the headless-mode spike] falls short,
+  Aider ... is a known-working fallback"; the spike itself was skipped for time, not attempted
+  and failed). Pick a folder, describe a change in a composer, and get a transcript with
+  rendered prose, per-file **diff cards** for each edit, result chips (files edited, commits
+  made), token usage, and a **Changes panel** (live files-changed list from a filesystem watcher,
+  commit list, click a commit for its `git show` diff). **Undo** sends Aider's `/undo`. Sessions
+  are real now: each is saved (prompt + Aider's record of the turn) and reopening one rebuilds
+  the whole transcript. A **Terminal** toggle keeps the original interactive Aider TUI
+  (PTY + xterm.js) for power use.
+  - *How it runs*: one Aider process **per turn** (`src-tauri/src/code_turn.rs`), not a
+    long-lived terminal. A turn ends exactly when the process exits, Stop is a process-tree kill,
+    and memory/project/skill context is regenerated every turn. Continuity comes from Aider's
+    `--restore-chat-history` with a per-session history file under
+    `<app-config-dir>/code-history/`. Cost: roughly 7 seconds of Python/litellm startup per
+    turn on the dev machine, small next to local-model generation time.
+  - *Where the transcript comes from*: Aider's own chat-history file, not its stdout. Stdout is
+    noisy (banner, auto-answered prompts, the reply repeated when Aider auto-adds a file and
+    re-asks), so it only drives the transient "working..." view; the final turn is parsed from the
+    history record (`src/aiderRecord.ts`) and that same record is what gets stored.
+  - *Flags that matter*: `--no-show-model-warnings` is mandatory — with `--yes-always`, Aider
+    auto-answers "open documentation url?" and would pop a browser tab every turn.
+  - *Edit format*: left at Aider's default for the model. For unknown gateway model names that
+    is `whole` (the model rewrites whole files); `diff` is cheaper on big files but weak local
+    models often fail at it. Not exposed in the UI yet.
+  - *Side effect inherited from Aider*: on first use in a repo Aider adds `.aider*` to
+    `.gitignore` (same as the terminal mode always did).
 - **Hooks**: approximated, not a true re-implementation of Claude Code's pre/post-tool-use
   interception. Aider is a black-box interactive process — individual tool calls inside it aren't
   observable or interceptable. What's real: **session-start** (runs before Aider launches),
@@ -33,10 +53,9 @@ overnight push, at the user's explicit direction to not stop at phase boundaries
 - **Session persistence (Chat)**: every conversation is saved to a local SQLite database
   (`<app-config-dir>/data.db`, via `rusqlite`), with a sidebar to browse, resume, and delete past
   chats — added after the first build shipped with none of this and lost history on every
-  restart. Code view gets a lighter version: a history *record* (working directory, model, when)
-  is saved per session, but not a message-by-message transcript — Aider already writes its own
-  `.aider.chat.history.md` inside the working directory, which is the actual conversation record
-  for that surface, so this doesn't duplicate it.
+  restart. Code view sessions persist too (prompt + Aider's per-turn record, plus the working
+  folder in a small `code_sessions` table owned by `code_turn.rs`); the terminal toggle's
+  interactive sessions are not recorded.
 - **System tray + global shortcut**: closing the window hides it instead of quitting (so an
   in-flight Code session or MCP connection survives an accidental click), a left tray-icon click
   or `Ctrl+Shift+Space` toggles the window from anywhere, and right-click gives Show/Hide + Quit.
@@ -91,6 +110,20 @@ overnight push, at the user's explicit direction to not stop at phase boundaries
 - ✅ Rust backend: `cargo build` (not just `check`) completed a real dev build and linked
   `target/debug/tauri-app.exe` successfully, including the new tray-icon/global-shortcut code
   paths. Frontend (`tsc` + `vite build`) also compiles clean.
+- ✅ **Chat-first Code view, checked without touching the home network**: (1) the output parser
+  (`aiderRecord.ts`) was run against real Aider 0.86.2 output, including a failure case (lint
+  reflection loop); (2) Rust unit tests for the helpers, plus an `#[ignore]`d integration test
+  (`aider_turn_against_mock`) that spawns **real Aider** in a temp git repo against a throwaway
+  localhost mock of the OpenAI endpoint and asserts exit code 0, the edit applied, a commit made,
+  live output events and a file-changed event (`cargo test aider_turn_against_mock -- --ignored`
+  with `AI_PROJECT_TEST_MOCK_URL` and `AI_PROJECT_AIDER_PATH` set); (3) the React view was
+  rendered in a real browser against a fake Tauri backend replaying that captured output —
+  empty states, live streaming, diff cards, Changes panel, commit diff, session reload, New
+  session, the unreachable-gateway error, and the Terminal toggle all behaved. This verifies the
+  view and the Rust turn runner separately; it is not the same as using the installed app.
+- ❌ **Not verified for the chat-first Code view**: the packaged Tauri window driving a real
+  turn through the real gateway and model (including how well your local models cope with Aider's
+  edit formats), and the Stop button killing a real process tree.
 - ❌ **The actual Tauri window — PTY terminal rendering, xterm.js input/output wiring, the
   Chat/Code tab switch, the skill picker, the hooks panel — has not been visually tested.** There
   is no way to drive a native GUI window from the environment this was built in. The individual
@@ -163,9 +196,8 @@ all), so this scope only affects Chat.
 - **Skills have no lazy-loading** — full content loads immediately on selection, not on-demand.
 - **Auto-memory capture is a prompted heuristic, not a real mechanism** — see the Memory section
   above. Untested across real usage; may not fire reliably.
-- **No multi-session support in Code view** — one Aider session at a time per app instance (the
-  backend's `CodeSessionState` is a `HashMap` so it technically *could* hold several, but the UI
-  only drives one).
+- **Code view runs one turn at a time** — you can keep many saved sessions and switch between
+  them, but a running turn must finish (or be stopped) before starting or switching.
 - **Aider is not bundled** — external prerequisite, see above.
 - **RAG, MCP tool use, web search** — not reimplemented here; those are Open WebUI/`lxc-retrieval`
   territory per the web surface, not duplicated in this app.
