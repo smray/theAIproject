@@ -1,8 +1,8 @@
-/* Paste into Open WebUI → Settings → Interface → Custom CSS (or equivalent admin theming
-   setting — confirm exact location once the instance is up; it has moved between versions).
-   Source: design/design-tokens.md. This is just the variable block + font import — mapping
-   these onto Open WebUI's own component classes is separate follow-up work once the base
-   instance is confirmed working, not decided here. */
+/* NOT CURRENTLY APPLICABLE AS-IS: verified against Open WebUI's actual source that no admin or
+   user "Custom CSS" setting exists to paste this into (see surfaces/web/README.md's "Branding
+   reality check"). Kept as a reference of the intended tokens (source: design/design-tokens.md)
+   in case a reverse-proxy CSS injection or fork is ever worth the effort - not wired up to
+   anything right now. */
 
 @import url('https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Jost:wght@300;400;500;600&display=swap');
 

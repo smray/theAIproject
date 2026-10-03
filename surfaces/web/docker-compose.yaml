@@ -13,5 +13,9 @@ services:
       # hubble/lxc-vectordb, 192.168.1.44 - see infra/lxc-vectordb/README.md.
       - VECTOR_DB=qdrant
       - QDRANT_URI=http://192.168.1.44:6333
+      # Open WebUI has no custom-CSS setting (verified against its source - see README's
+      # "Branding" section), so this plain app-name string is the actual extent of branding
+      # available without a reverse-proxy CSS injection or a maintained fork.
+      - WEBUI_NAME=The AI Project
     volumes: ["open-webui-data:/app/backend/data"]
 volumes: { open-webui-data: {} }

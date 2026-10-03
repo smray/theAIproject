@@ -94,7 +94,29 @@ serving those model names, not a problem with this container.
       container needed as the plan assumed). Deployed at `192.168.1.45:3000`. Embedding: separate
       bookmarked URL, not a tab inside Open WebUI, per the plan's default — revisit only if the
       two-URL experience proves annoying in practice.
-- [ ] Apply [custom.css](custom.css) (the shared [design tokens](../../design/design-tokens.md))
-      via Open WebUI's custom CSS setting, once the base instance is confirmed working.
+- [x] ~~Apply custom.css via Open WebUI's custom CSS setting~~ — **checked against the actual
+      source, no such setting exists.** See "Branding reality check" below;
+      [custom.css](custom.css) is kept as a reference of intended tokens only, not something you
+      can paste in anywhere yet.
+- [x] Set `WEBUI_NAME=The AI Project` (the one branding hook that's real — see below).
 - [ ] Note the [Open WebUI branding-clause caveat](../../docs/Integrated%20system%20development%20plan.md#2-surface-1--web-endpoint)
       if this ever moves beyond a single household (50-user/30-day threshold).
+
+### Branding reality check
+
+The original plan to paste [custom.css](custom.css) into an admin "Custom CSS" setting was never
+actually verified against Open WebUI's code — checked tonight by reading its current source
+(`src/app.css`, `admin/Settings/{General,Interface}.svelte`, `chat/Settings/{General,
+Personalization}.svelte`, `backend/open_webui/env.py`) and **no such setting exists**: no admin
+UI field, no user-settings field, no environment variable, and no theme-overridable CSS custom
+properties beyond a handful of internal `--pm-*`/`--app-text-scale` variables unrelated to brand
+color. The theme system manipulates Tailwind's own `--color-gray-*` variables programmatically,
+not through anything user-facing.
+
+What's actually available, confirmed from the same source read: `WEBUI_NAME` (plain app name,
+now set above) and `WEBUI_FAVICON_URL` (needs a web-reachable icon URL — not set, since nothing
+in this repo is hosted anywhere the container can fetch from yet; `surfaces/pc/src-tauri/icons/`
+has an app icon that could be adapted if this becomes worth the effort later). Real color/font
+theming would need a reverse-proxy CSS injection (e.g. nginx `sub_filter`) or a maintained fork —
+disproportionate effort for what the plan already calls optional polish, not a blocker. Not
+pursued further; this note exists so the next pass doesn't re-attempt the admin-setting route.
