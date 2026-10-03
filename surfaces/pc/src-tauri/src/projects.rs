@@ -16,6 +16,8 @@ pub struct Project {
     pub id: String,
     pub name: String,
     pub instructions: String,
+    #[serde(default)]
+    pub code_path: Option<String>,
     pub created_at: i64,
 }
 
@@ -30,7 +32,7 @@ fn now() -> i64 {
 pub fn list_projects(db: State<Db>) -> Result<Vec<Project>, String> {
     let conn = db.0.lock().unwrap();
     let mut stmt = conn
-        .prepare("SELECT id, name, instructions, created_at FROM projects ORDER BY created_at ASC")
+        .prepare("SELECT id, name, instructions, code_path, created_at FROM projects ORDER BY created_at ASC")
         .map_err(|e| e.to_string())?;
     let rows = stmt
         .query_map([], |row| {
@@ -38,7 +40,8 @@ pub fn list_projects(db: State<Db>) -> Result<Vec<Project>, String> {
                 id: row.get(0)?,
                 name: row.get(1)?,
                 instructions: row.get(2)?,
-                created_at: row.get(3)?,
+                code_path: row.get(3)?,
+                created_at: row.get(4)?,
             })
         })
         .map_err(|e| e.to_string())?;
@@ -54,12 +57,34 @@ pub fn save_project(db: State<Db>, project: Project) -> Result<String, String> {
         project.id.clone()
     };
     conn.execute(
-        "INSERT INTO projects (id, name, instructions, created_at) VALUES (?1, ?2, ?3, ?4) \
-         ON CONFLICT(id) DO UPDATE SET name=excluded.name, instructions=excluded.instructions",
-        params![id, project.name, project.instructions, now()],
+        "INSERT INTO projects (id, name, instructions, code_path, created_at) VALUES (?1, ?2, ?3, ?4, ?5) \
+         ON CONFLICT(id) DO UPDATE SET name=excluded.name, instructions=excluded.instructions, \
+         code_path=excluded.code_path",
+        params![id, project.name, project.instructions, project.code_path, now()],
     )
     .map_err(|e| e.to_string())?;
     Ok(id)
+}
+
+/// Plain Rust helper (not a tauri::command) for other backend modules - code_session.rs calls
+/// this directly to pull a project's instructions when starting an Aider session scoped to it,
+/// without going through the IPC layer.
+pub fn get_project_by_id(db: &Db, id: &str) -> Option<Project> {
+    let conn = db.0.lock().unwrap();
+    conn.query_row(
+        "SELECT id, name, instructions, code_path, created_at FROM projects WHERE id = ?1",
+        [id],
+        |row| {
+            Ok(Project {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                instructions: row.get(2)?,
+                code_path: row.get(3)?,
+                created_at: row.get(4)?,
+            })
+        },
+    )
+    .ok()
 }
 
 #[tauri::command]

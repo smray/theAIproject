@@ -9,6 +9,7 @@
 // Aider uses is "edit a file"). This is documented as an intentional approximation, not a bug.
 
 use crate::db::{get_memory_context, Db};
+use crate::projects::get_project_by_id;
 use notify::{RecommendedWatcher, RecursiveMode, Watcher};
 use portable_pty::{native_pty_system, CommandBuilder, PtySize};
 use serde::{Deserialize, Serialize};
@@ -169,6 +170,8 @@ pub struct StartSessionArgs {
     pub gateway_url: String,
     pub model: String,
     pub skill_paths: Vec<String>,
+    #[serde(default)]
+    pub project_id: Option<String>,
 }
 
 /// Aider is not bundled into the installer - a Python venv isn't portable (it embeds absolute
@@ -233,6 +236,7 @@ pub fn start_code_session(
 
     // Same memory store Chat uses (FR7-style user/project/feedback/reference notes), written to
     // a file so it can ride along as another --read context source for Aider.
+    let project = args.project_id.as_deref().and_then(|id| get_project_by_id(db.inner(), id));
     let memory_context = get_memory_context(db).unwrap_or_default();
     let memory_file_path = if !memory_context.is_empty() {
         let path = config_dir(&app).join("memory-context.md");
@@ -241,6 +245,14 @@ pub fn start_code_session(
     } else {
         None
     };
+
+    // Project instructions (Chat's own agent/project system-prompt injection, mirrored here) -
+    // the same "standing context for this workspace" concept applied to a Code session.
+    let project_file_path = project.as_ref().map(|p| {
+        let path = config_dir(&app).join("project-context.md");
+        std::fs::write(&path, format!("# Project: {}\n\n{}", p.name, p.instructions)).ok();
+        path
+    });
 
     let pty_system = native_pty_system();
     let pair = pty_system
@@ -264,6 +276,10 @@ pub fn start_code_session(
     if let Some(mem_path) = &memory_file_path {
         cmd.arg("--read");
         cmd.arg(mem_path);
+    }
+    if let Some(proj_path) = &project_file_path {
+        cmd.arg("--read");
+        cmd.arg(proj_path);
     }
     for skill_path in &args.skill_paths {
         cmd.arg("--read");

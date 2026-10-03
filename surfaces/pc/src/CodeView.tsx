@@ -20,6 +20,14 @@ interface HooksConfig {
   post_file_change: string[];
 }
 
+interface ProjectInfo {
+  id: string;
+  name: string;
+  instructions: string;
+  code_path: string | null;
+  created_at: number;
+}
+
 const EMPTY_HOOKS: HooksConfig = { session_start: [], session_stop: [], post_file_change: [] };
 
 export default function CodeView() {
@@ -31,6 +39,8 @@ export default function CodeView() {
   const [showHooks, setShowHooks] = useState(false);
   const [hooks, setHooks] = useState<HooksConfig>(EMPTY_HOOKS);
   const [error, setError] = useState<string | null>(null);
+  const [projects, setProjects] = useState<ProjectInfo[]>([]);
+  const [projectId, setProjectId] = useState<string>("");
 
   const termContainerRef = useRef<HTMLDivElement>(null);
   const termRef = useRef<Terminal | null>(null);
@@ -40,7 +50,14 @@ export default function CodeView() {
   useEffect(() => {
     invoke<SkillInfo[]>("list_skills").then(setSkills).catch(() => undefined);
     invoke<HooksConfig>("get_hooks_config").then(setHooks).catch(() => undefined);
+    invoke<ProjectInfo[]>("list_projects").then(setProjects).catch(() => undefined);
   }, []);
+
+  function selectProject(id: string) {
+    setProjectId(id);
+    const project = projects.find((p) => p.id === id);
+    if (project?.code_path) setCwd(project.code_path);
+  }
 
   useEffect(() => {
     if (!termContainerRef.current || termRef.current) return;
@@ -123,6 +140,7 @@ export default function CodeView() {
           gateway_url: getGatewayUrl(),
           model,
           skill_paths: Array.from(selectedSkills),
+          project_id: projectId || null,
         },
       });
       setSessionId(id);
@@ -130,7 +148,7 @@ export default function CodeView() {
       // History record only (cwd/model/when) - not a transcript. Aider already keeps its own
       // .aider.chat.history.md inside the working directory, which is the actual conversation
       // record; this is just so past Code sessions show up somewhere in the app.
-      invoke("create_session", { view: "code", title: cwd }).catch(() => undefined);
+      invoke("create_session", { view: "code", title: cwd, project_id: projectId || null }).catch(() => undefined);
 
       const unlistenOutput = await listen<string>(`code-output-${id}`, (event) => {
         termRef.current?.write(event.payload);
@@ -164,6 +182,19 @@ export default function CodeView() {
   return (
     <div className="code-view">
       <div className="code-toolbar">
+        <select
+          value={projectId}
+          onChange={(e) => selectProject(e.target.value)}
+          disabled={!!sessionId}
+          title="Scope this session to a project - its instructions get read in alongside skills"
+        >
+          <option value="">No project</option>
+          {projects.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+            </option>
+          ))}
+        </select>
         <button type="button" className="folder-button" onClick={pickFolder} disabled={!!sessionId}>
           {cwd || "Choose working directory..."}
         </button>

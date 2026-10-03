@@ -32,6 +32,7 @@ pub fn init(app: &AppHandle) -> Db {
             id TEXT PRIMARY KEY,
             name TEXT NOT NULL,
             instructions TEXT NOT NULL,
+            code_path TEXT,
             created_at INTEGER NOT NULL
         );
         CREATE TABLE IF NOT EXISTS messages (
@@ -63,6 +64,8 @@ pub fn init(app: &AppHandle) -> Db {
     // Migration for databases created before project scoping existed - no-op (duplicate column
     // error, ignored) on any fresh DB where CREATE TABLE above already included project_id.
     conn.execute("ALTER TABLE sessions ADD COLUMN project_id TEXT", [])
+        .ok();
+    conn.execute("ALTER TABLE projects ADD COLUMN code_path TEXT", [])
         .ok();
 
     Db(Mutex::new(conn))
