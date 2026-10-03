@@ -1,9 +1,9 @@
 # Android surface — RikkaHub configuration
 
 Phase 2 of [the roadmap](../../docs/Integrated%20system%20development%20plan.md#5-phased-roadmap).
-Status: **partially verified** — installed and launched for real on an Android emulator
-(`Pixel_6a`, API via the Android SDK already present on this dev machine), not just documented
-blind. See "Verification attempt" below for exactly what that confirmed and what it didn't.
+Status: **verified end-to-end** — installed on a real Android emulator (`Pixel_6a`), configured a
+custom provider pointed at the gateway, and got a real model response back through
+`http://192.168.1.40:4000/v1` (see "Verification attempt" below). Not just documented blind.
 
 Per the plan, this is adoption, not a build — nothing here runs on the homelab, it's entirely
 configuration on your phone:
@@ -12,7 +12,7 @@ configuration on your phone:
       from its [GitHub Releases](https://github.com/rikkahub/rikkahub/releases) (check F-Droid
       too, in case it's listed there now) and sideload it (Android will prompt to allow installs
       from that source the first time).
-- [ ] Add a custom provider pointing at the gateway, not `llm01` directly — same rule as every
+- [x] Add a custom provider pointing at the gateway, not `llm01` directly — same rule as every
       other surface:
   - **Base URL**: `http://192.168.1.40:4000/v1`
   - **API key**: any placeholder (e.g. `none`) — the gateway has no master key configured yet, so
@@ -21,6 +21,10 @@ configuration on your phone:
     `infra/lxc-gateway/litellm_config.yaml`. `chat-batch` (the heavy-batch/235B tier) will time
     out or error until `llm01` finishes that model's download — expected for now, not a RikkaHub
     problem.
+  - **Also required, separate from provider config**: add a model entry (e.g. `chat-default`) and
+    set it as RikkaHub's global default **Chat Model** under its own model-selection setting — the
+    provider alone isn't enough to actually send a message, confirmed by getting a "no model
+    selected"-style block until this was done too.
 - [ ] MCP tool integration — **blocked**, not yet actionable: no MCP servers are deployed anywhere
       in this project yet (`lxc-memory` from the requirements doc's Part 4 §4.2 doesn't exist).
       Revisit once at least one MCP server exists to point RikkaHub at.
@@ -45,24 +49,31 @@ like everything Android-related had been all session, it got an actual test pass
 - ✅ **The Settings → Providers → Add Provider screen matches this doc's assumptions exactly**:
   Name / API Key / API Base URL / API Path fields, OpenAI-compatible format selectable — confirms
   the configuration steps above are pointed at real, existing UI, not a guess.
-- ❌ **Did not successfully complete filling in and saving the custom provider via automation.**
-  Driving a real native Android UI via blind `adb shell input tap`/`text` coordinates turned out
-  to be genuinely unreliable here — the Add Provider dialog repositions vertically depending on
-  keyboard visibility, so coordinates captured in one state silently miss in another (one such
-  miss hit the OpenAI/Google/Claude format tabs instead of the Name field). Multiple attempts also
-  raced against the on-screen keyboard's own event queue, causing text to land in the wrong field
-  or get duplicated. Proper mobile UI automation needs a real framework (Espresso/UIAutomator with
-  resource-id-based element matching, not raw pixel taps) — not attempted here, out of scope for
-  what this session could responsibly spend time on.
+- ✅ **Full end-to-end round trip confirmed, in a follow-up pass.** The provider was saved
+  correctly (the earlier automation flakiness below was from an initial attempt, not a dead end),
+  a `chat-default` model entry was added and set as RikkaHub's global default Chat Model (a
+  separate, required step — see the checklist above), and a real message sent from RikkaHub on
+  the emulator got a real response back from `chat-default` through the gateway
+  (`http://192.168.1.40:4000/v1`, ~15 tokens in / 10 out, ~11.6s). This is the first genuine
+  Android end-to-end verification this project has had — not just "the screen matches," an actual
+  model response arrived.
+- **Known cosmetic gap, not blocking**: RikkaHub also has a separate "Fast Model" setting (used
+  for auto-generating chat titles) that's still unset. Doesn't affect normal chat use.
+- Earlier in this verification, driving the Add Provider dialog via blind `adb shell input
+  tap`/`text` coordinates was genuinely unreliable (it repositions vertically with keyboard
+  visibility, so captured coordinates silently missed in a different state) — documented here
+  since it's a real lesson for any future `adb`-coordinate automation attempt, even though the
+  provider ended up saved correctly. Proper mobile UI automation would use a real framework
+  (Espresso/UIAutomator with resource-id-based element matching, not raw pixel taps).
 - **Known leftover**: a harmless duplicate, unconfigured "OpenAI" provider entry exists in the
-  emulator's RikkaHub install from a partial attempt (still showing default `api.openai.com`, "0
-  models" — never actually got the gateway URL/key saved into it). Not connected to anything,
-  doesn't affect the real device setup described above. Delete it manually if continuing from this
-  emulator state, or just configure provider manually as this doc describes from the start.
+  emulator's RikkaHub install from an earlier partial attempt (still showing default
+  `api.openai.com`, "0 models"). Not connected to anything, doesn't affect the real setup above.
+  Delete it manually if continuing from this emulator state.
 
-**What this means in practice**: the written instructions above are now confirmed to describe a
-real, reachable configuration flow, not a guess at RikkaHub's UI — but actually completing that
-flow on a real phone is still a manual step for a person, same as before this verification pass.
+**What this means in practice**: the written instructions above are now confirmed correct against
+a real device, start to finish — provider config, model selection, and an actual response through
+the gateway. The remaining gap is purely "a person still has to tap through these same steps on
+their own phone," not "these steps might not work."
 
 **If a RikkaHub fork ever becomes necessary**, that's a new ADR (see
 [docs/adr/0001-repo-layout-and-stack.md](../../docs/adr/0001-repo-layout-and-stack.md)) and this
