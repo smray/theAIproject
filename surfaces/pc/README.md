@@ -74,6 +74,13 @@ overnight push, at the user's explicit direction to not stop at phase boundaries
   capped at ~50k characters per file with a truncation note rather than silently blowing out the
   context window. Binary extensions are rejected with an error rather than being read as garbled
   text.
+- **Autonomous mode (Chat)**: a 🧠 toolbar toggle that raises the tool-calling loop's turn cap
+  from 8 to 25 and adds a system instruction to keep calling tools until the task is actually
+  done rather than stopping after one call. Mostly a thinner feature than it sounds — the
+  tool-calling loop already supported a configurable turn cap, this just exposes it — and it only
+  changes anything when at least one tool (an agent's research tool, or a connected MCP server)
+  is actually available; with no tools, Chat still falls back to a single-turn streamed answer
+  regardless of this toggle.
 
 ## What was actually verified (read this before trusting it)
 
