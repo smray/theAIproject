@@ -36,10 +36,9 @@ gap worth closing, not cosmetic) — see
 **Phase 1 (web) done** — confirmed working end-to-end (Open WebUI → LiteLLM gateway → `llm01`),
 RAG (Qdrant) and web search (Vane) both deployed too, see
 [surfaces/web/README.md](surfaces/web/README.md). Remaining extras there (MCP wiring, branding)
-are optional polish, not blockers. **Phase 2 (Android) partially verified** — RikkaHub installs
-and launches for real on an emulator, and the configuration screen matches the documented steps,
-but automated end-to-end form submission wasn't completed; see
-[surfaces/android/README.md](surfaces/android/README.md).
+are optional polish, not blockers. **Phase 2 (Android) verified end-to-end** — RikkaHub installed
+and configured on an emulator, with a real model response confirmed through the gateway (not just
+a UI-matches-the-docs check); see [surfaces/android/README.md](surfaces/android/README.md).
 **Phase 3 (PC app, Chat view)** is built and packaged. **Phase 4 (Code view)** is built too —
 Aider in a real PTY terminal, confirmed working end-to-end outside the GUI (connected through the
 gateway, wrote a file, committed it) — skipping the plan's one-week headless-mode spike for
