@@ -30,6 +30,23 @@ overnight push, at the user's explicit direction to not stop at phase boundaries
   selected in the UI — a reasonable approximation of "on-demand loaded instruction" but without
   Claude Code's actual progressive-disclosure mechanics (near-zero cost until invoked) — every
   selected skill's full content loads into context immediately, there's no lazy/partial loading.
+- **Session persistence (Chat)**: every conversation is saved to a local SQLite database
+  (`<app-config-dir>/data.db`, via `rusqlite`), with a sidebar to browse, resume, and delete past
+  chats — added after the first build shipped with none of this and lost history on every
+  restart. Code view gets a lighter version: a history *record* (working directory, model, when)
+  is saved per session, but not a message-by-message transcript — Aider already writes its own
+  `.aider.chat.history.md` inside the working directory, which is the actual conversation record
+  for that surface, so this doesn't duplicate it.
+- **Memory (FR7-lite)**: the same typed schema the requirements doc specifies for Claude Code's
+  own auto-memory (`user` / `feedback` / `project` / `reference` categories), stored in the same
+  SQLite database, with a **Memory** tab to view/add/delete entries by hand. Automatically
+  injected as a system-prompt preamble into every new Chat message and every new Code session
+  (via an extra `--read` file for Aider). **Auto-capture is a best-effort heuristic, not a real
+  mechanism**: the system prompt asks the model to end a reply with a `[MEMORY:category] ...`
+  line when it decides something's worth remembering, and the frontend detects and strips that
+  line, saving it to the store — this depends entirely on the model actually following the
+  instruction reliably, which hasn't been tested across many real conversations. The manual
+  add/delete UI in the Memory tab is the reliable path; the auto-capture is a nice-to-have on top.
 
 ## What was actually verified (read this before trusting it)
 
@@ -97,12 +114,13 @@ HTTP plugin (used by Chat). The Code view's gateway access goes through Aider's 
 separate OS process with its own network access, not subject to Tauri's capability system at
 all), so this scope only affects Chat.
 
-## Known limitations / explicitly not done tonight
+## Known limitations / explicitly not done
 
-- **No message persistence** (Chat) across restarts.
 - **No true tool-call-level hooks** — see the Hooks section above for what's real vs.
   approximated.
 - **Skills have no lazy-loading** — full content loads immediately on selection, not on-demand.
+- **Auto-memory capture is a prompted heuristic, not a real mechanism** — see the Memory section
+  above. Untested across real usage; may not fire reliably.
 - **No multi-session support in Code view** — one Aider session at a time per app instance (the
   backend's `CodeSessionState` is a `HashMap` so it technically *could* hold several, but the UI
   only drives one).

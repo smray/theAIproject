@@ -1,9 +1,10 @@
 import { useState } from "react";
 import ChatView from "./ChatView";
 import CodeView from "./CodeView";
+import MemoryView from "./MemoryView";
 import "./App.css";
 
-type Tab = "chat" | "code";
+type Tab = "chat" | "code" | "memory";
 
 export default function App() {
   const [tab, setTab] = useState<Tab>("chat");
@@ -27,15 +28,25 @@ export default function App() {
           >
             Code
           </button>
+          <button
+            type="button"
+            className={`app-tab ${tab === "memory" ? "active" : ""}`}
+            onClick={() => setTab("memory")}
+          >
+            Memory
+          </button>
         </nav>
       </header>
 
-      {/* Both views stay mounted so switching tabs never kills a running Code session. */}
+      {/* All views stay mounted so switching tabs never kills a running Code session. */}
       <div className="app-body" style={{ display: tab === "chat" ? "flex" : "none" }}>
         <ChatView />
       </div>
       <div className="app-body" style={{ display: tab === "code" ? "flex" : "none" }}>
         <CodeView />
+      </div>
+      <div className="app-body" style={{ display: tab === "memory" ? "flex" : "none" }}>
+        <MemoryView />
       </div>
     </div>
   );

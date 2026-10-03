@@ -8,6 +8,7 @@
 // changes in the working directory (a stand-in for "post-tool-use", since the most common tool
 // Aider uses is "edit a file"). This is documented as an intentional approximation, not a bug.
 
+use crate::db::{get_memory_context, Db};
 use notify::{RecommendedWatcher, RecursiveMode, Watcher};
 use portable_pty::{native_pty_system, CommandBuilder, PtySize};
 use serde::{Deserialize, Serialize};
@@ -219,6 +220,7 @@ fn resolve_aider_path() -> Result<PathBuf, String> {
 pub fn start_code_session(
     app: AppHandle,
     state: State<CodeSessionState>,
+    db: State<Db>,
     args: StartSessionArgs,
 ) -> Result<String, String> {
     let cwd = PathBuf::from(&args.cwd);
@@ -228,6 +230,17 @@ pub fn start_code_session(
 
     let hooks = load_hooks(&app);
     run_hook_commands(&hooks.session_start, &cwd, "session-start", &[]);
+
+    // Same memory store Chat uses (FR7-style user/project/feedback/reference notes), written to
+    // a file so it can ride along as another --read context source for Aider.
+    let memory_context = get_memory_context(db).unwrap_or_default();
+    let memory_file_path = if !memory_context.is_empty() {
+        let path = config_dir(&app).join("memory-context.md");
+        std::fs::write(&path, &memory_context).ok();
+        Some(path)
+    } else {
+        None
+    };
 
     let pty_system = native_pty_system();
     let pair = pty_system
@@ -248,6 +261,10 @@ pub fn start_code_session(
     cmd.arg("none");
     cmd.arg("--model");
     cmd.arg(format!("openai/{}", args.model));
+    if let Some(mem_path) = &memory_file_path {
+        cmd.arg("--read");
+        cmd.arg(mem_path);
+    }
     for skill_path in &args.skill_paths {
         cmd.arg("--read");
         cmd.arg(skill_path);

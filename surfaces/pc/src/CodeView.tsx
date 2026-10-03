@@ -127,6 +127,11 @@ export default function CodeView() {
       });
       setSessionId(id);
 
+      // History record only (cwd/model/when) - not a transcript. Aider already keeps its own
+      // .aider.chat.history.md inside the working directory, which is the actual conversation
+      // record; this is just so past Code sessions show up somewhere in the app.
+      invoke("create_session", { view: "code", title: cwd }).catch(() => undefined);
+
       const unlistenOutput = await listen<string>(`code-output-${id}`, (event) => {
         termRef.current?.write(event.payload);
       });
