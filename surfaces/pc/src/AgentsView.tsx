@@ -154,8 +154,9 @@ export default function AgentsView() {
 
         <div className="agents-mcp-scope">
           <div className="agents-mcp-scope-label">
-            MCP servers this agent can use (stored for future use - not yet enforced; Chat
-            currently exposes all connected MCP tools to every agent regardless of this list)
+            MCP servers this agent can use. Leave empty for no restriction (every connected
+            server's tools are available); check specific servers to scope this agent to only
+            those.
           </div>
           {mcpServers.length === 0 && (
             <div className="agents-mcp-scope-empty">No MCP servers configured yet (see Chat → 🔌).</div>

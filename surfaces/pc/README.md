@@ -59,9 +59,9 @@ overnight push, at the user's explicit direction to not stop at phase boundaries
   explicitly not as a licensed professional making binding decisions), selectable from a dropdown
   in Chat, with a full CRUD **Agents** tab to create/edit/delete custom ones. An agent with
   `use_research_tool` set gets a CrossRef journal-search tool merged into the chat's tool-calling
-  loop alongside any connected MCP tools. The MCP-server checklist on an agent is stored but not
-  yet enforced — Chat currently exposes all connected MCP tools to every agent regardless of that
-  list, documented as such in the Agents tab itself.
+  loop alongside any connected MCP tools. The MCP-server checklist on an agent scopes which
+  connected MCP tools it can see — leave it empty for no restriction (every default agent ships
+  that way), or check specific servers to limit an agent to only those.
 - **Projects**: named standing instructions ("this chat is about the homelab migration"), with a
   **Projects** tab to create/edit them and an optional working directory. Scoping a Chat session
   to a project injects its instructions as a leading system message; scoping a Code session to

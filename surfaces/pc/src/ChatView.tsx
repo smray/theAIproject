@@ -406,7 +406,14 @@ export default function ChatView() {
         { role: "user" as const, content: apiText },
       ];
 
-      const tools: GatewayTool[] = mcpTools.map((t) => ({
+      // An agent's mcp_servers list scopes which connected MCP tools it can see - an empty list
+      // means "no restriction" (every default agent ships with one), a non-empty list means only
+      // those servers' tools are exposed to that agent.
+      const scopedMcpTools =
+        selectedAgent && selectedAgent.mcp_servers.length > 0
+          ? mcpTools.filter((t) => selectedAgent.mcp_servers.includes(t.server))
+          : mcpTools;
+      const tools: GatewayTool[] = scopedMcpTools.map((t) => ({
         type: "function",
         function: {
           name: `${t.server}__${t.name}`,
