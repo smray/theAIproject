@@ -61,7 +61,9 @@ overnight push, at the user's explicit direction to not stop at phase boundaries
   (`aider --openai-api-base http://192.168.1.40:4000/v1 --model openai/chat-fast --message "..."`)
   against a scratch git repo. It connected through the gateway, got a real model response, wrote
   a file, and committed it. This is the single biggest risk the plan flagged, and it works.
-- ✅ Rust backend (`cargo build`) and frontend (`tsc` + `vite build`) both compile clean.
+- ✅ Rust backend: `cargo build` (not just `check`) completed a real dev build and linked
+  `target/debug/tauri-app.exe` successfully, including the new tray-icon/global-shortcut code
+  paths. Frontend (`tsc` + `vite build`) also compiles clean.
 - ❌ **The actual Tauri window — PTY terminal rendering, xterm.js input/output wiring, the
   Chat/Code tab switch, the skill picker, the hooks panel — has not been visually tested.** There
   is no way to drive a native GUI window from the environment this was built in. The individual
