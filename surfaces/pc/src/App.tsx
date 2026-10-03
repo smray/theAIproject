@@ -1,11 +1,12 @@
 import { useState } from "react";
+import AgentsView from "./AgentsView";
 import ChatView from "./ChatView";
 import CodeView from "./CodeView";
 import MemoryView from "./MemoryView";
 import ProjectsView from "./ProjectsView";
 import "./App.css";
 
-type Tab = "chat" | "code" | "memory" | "projects";
+type Tab = "chat" | "code" | "memory" | "projects" | "agents";
 
 export default function App() {
   const [tab, setTab] = useState<Tab>("chat");
@@ -43,6 +44,13 @@ export default function App() {
           >
             Projects
           </button>
+          <button
+            type="button"
+            className={`app-tab ${tab === "agents" ? "active" : ""}`}
+            onClick={() => setTab("agents")}
+          >
+            Agents
+          </button>
         </nav>
       </header>
 
@@ -58,6 +66,9 @@ export default function App() {
       </div>
       <div className="app-body" style={{ display: tab === "projects" ? "flex" : "none" }}>
         <ProjectsView />
+      </div>
+      <div className="app-body" style={{ display: tab === "agents" ? "flex" : "none" }}>
+        <AgentsView />
       </div>
     </div>
   );
