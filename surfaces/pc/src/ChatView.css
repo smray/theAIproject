@@ -337,6 +337,12 @@
   border-color: var(--accent);
 }
 
+.icon-button.active {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-pale);
+}
+
 .settings-panel {
   display: flex;
   align-items: center;

@@ -152,6 +152,7 @@ export default function ChatView() {
   const [projectId, setProjectId] = useState<string>("");
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
+  const [autonomousMode, setAutonomousMode] = useState(false);
 
   const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -384,6 +385,18 @@ export default function ChatView() {
             `worth persisting, not on every message.`,
         });
       }
+      if (autonomousMode) {
+        systemPrelude.push({
+          role: "system",
+          content:
+            "Autonomous mode is on. Work through this task step by step using the tools " +
+            "available to you - call a tool, look at its result, and call another if the task " +
+            "isn't done yet, rather than stopping after one tool call. Only give a final answer " +
+            "once the task is genuinely complete, or you hit a real blocker (missing " +
+            "information, a decision only the user can make, or a tool that doesn't exist for " +
+            "what's needed) - in that case say exactly what's blocking you instead of guessing.",
+        });
+      }
       // The displayed/stored turn keeps the short "📎 filename" note; the model actually gets the
       // full attached file content, swapped in only for this latest turn so history replayed on
       // reload doesn't re-send every past attachment's full text on every future message.
@@ -421,6 +434,7 @@ export default function ChatView() {
           },
           (status) => setStatus(assistantId, status),
           controller.signal,
+          autonomousMode ? 25 : undefined,
         );
         setMessages((prev) =>
           prev.map((m) => (m.id === assistantId ? { ...m, content: finalText, status: undefined } : m)),
@@ -570,6 +584,14 @@ export default function ChatView() {
               </option>
             ))}
           </select>
+          <button
+            type="button"
+            className={`icon-button ${autonomousMode ? "active" : ""}`}
+            onClick={() => setAutonomousMode((v) => !v)}
+            title="Autonomous mode: let the model keep calling tools across more turns (up to 25) until the task is actually done, instead of stopping after one. Only has an effect when at least one tool (an agent's research tool, or a connected MCP server) is available."
+          >
+            🧠
+          </button>
           {agents.find((a) => a.id === agentId)?.use_research_tool && (
             <span className="mcp-badge" title="This agent can search CrossRef for peer-reviewed journal articles">
               📚 research
