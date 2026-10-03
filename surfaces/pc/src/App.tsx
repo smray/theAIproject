@@ -2,9 +2,10 @@ import { useState } from "react";
 import ChatView from "./ChatView";
 import CodeView from "./CodeView";
 import MemoryView from "./MemoryView";
+import ProjectsView from "./ProjectsView";
 import "./App.css";
 
-type Tab = "chat" | "code" | "memory";
+type Tab = "chat" | "code" | "memory" | "projects";
 
 export default function App() {
   const [tab, setTab] = useState<Tab>("chat");
@@ -35,6 +36,13 @@ export default function App() {
           >
             Memory
           </button>
+          <button
+            type="button"
+            className={`app-tab ${tab === "projects" ? "active" : ""}`}
+            onClick={() => setTab("projects")}
+          >
+            Projects
+          </button>
         </nav>
       </header>
 
@@ -47,6 +55,9 @@ export default function App() {
       </div>
       <div className="app-body" style={{ display: tab === "memory" ? "flex" : "none" }}>
         <MemoryView />
+      </div>
+      <div className="app-body" style={{ display: tab === "projects" ? "flex" : "none" }}>
+        <ProjectsView />
       </div>
     </div>
   );

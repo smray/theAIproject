@@ -2,6 +2,7 @@ mod agents;
 mod code_session;
 mod db;
 mod mcp;
+mod projects;
 mod research;
 mod tray;
 
@@ -64,6 +65,9 @@ pub fn run() {
             agents::list_agents,
             agents::save_agent,
             agents::delete_agent,
+            projects::list_projects,
+            projects::save_project,
+            projects::delete_project,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

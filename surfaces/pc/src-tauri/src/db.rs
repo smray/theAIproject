@@ -24,8 +24,15 @@ pub fn init(app: &AppHandle) -> Db {
             id TEXT PRIMARY KEY,
             view TEXT NOT NULL,
             title TEXT NOT NULL,
+            project_id TEXT,
             created_at INTEGER NOT NULL,
             updated_at INTEGER NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS projects (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            instructions TEXT NOT NULL,
+            created_at INTEGER NOT NULL
         );
         CREATE TABLE IF NOT EXISTS messages (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -53,6 +60,11 @@ pub fn init(app: &AppHandle) -> Db {
     )
     .expect("failed to initialize database schema");
 
+    // Migration for databases created before project scoping existed - no-op (duplicate column
+    // error, ignored) on any fresh DB where CREATE TABLE above already included project_id.
+    conn.execute("ALTER TABLE sessions ADD COLUMN project_id TEXT", [])
+        .ok();
+
     Db(Mutex::new(conn))
 }
 
@@ -68,6 +80,7 @@ pub struct SessionInfo {
     pub id: String,
     pub view: String,
     pub title: String,
+    pub project_id: Option<String>,
     pub updated_at: i64,
 }
 
@@ -92,7 +105,7 @@ pub struct MemoryInfo {
 pub fn list_sessions(db: State<Db>, view: String) -> Result<Vec<SessionInfo>, String> {
     let conn = db.0.lock().unwrap();
     let mut stmt = conn
-        .prepare("SELECT id, view, title, updated_at FROM sessions WHERE view = ?1 ORDER BY updated_at DESC")
+        .prepare("SELECT id, view, title, project_id, updated_at FROM sessions WHERE view = ?1 ORDER BY updated_at DESC")
         .map_err(|e| e.to_string())?;
     let rows = stmt
         .query_map([&view], |row| {
@@ -100,7 +113,8 @@ pub fn list_sessions(db: State<Db>, view: String) -> Result<Vec<SessionInfo>, St
                 id: row.get(0)?,
                 view: row.get(1)?,
                 title: row.get(2)?,
-                updated_at: row.get(3)?,
+                project_id: row.get(3)?,
+                updated_at: row.get(4)?,
             })
         })
         .map_err(|e| e.to_string())?;
@@ -108,13 +122,18 @@ pub fn list_sessions(db: State<Db>, view: String) -> Result<Vec<SessionInfo>, St
 }
 
 #[tauri::command]
-pub fn create_session(db: State<Db>, view: String, title: String) -> Result<String, String> {
+pub fn create_session(
+    db: State<Db>,
+    view: String,
+    title: String,
+    project_id: Option<String>,
+) -> Result<String, String> {
     let id = uuid::Uuid::new_v4().to_string();
     let ts = now();
     let conn = db.0.lock().unwrap();
     conn.execute(
-        "INSERT INTO sessions (id, view, title, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?4)",
-        rusqlite::params![id, view, title, ts],
+        "INSERT INTO sessions (id, view, title, project_id, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?5)",
+        rusqlite::params![id, view, title, project_id, ts],
     )
     .map_err(|e| e.to_string())?;
     Ok(id)
