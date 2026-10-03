@@ -54,6 +54,26 @@ overnight push, at the user's explicit direction to not stop at phase boundaries
   line, saving it to the store — this depends entirely on the model actually following the
   instruction reliably, which hasn't been tested across many real conversations. The manual
   add/delete UI in the Memory tab is the reliable path; the auto-capture is a nice-to-have on top.
+- **Agents**: named system-prompt + tool-scope presets (five seeded: General Assistant, Research
+  Analyst, Medical/Legal Research Assistant, Software Engineer — all framed as research/advisory,
+  explicitly not as a licensed professional making binding decisions), selectable from a dropdown
+  in Chat, with a full CRUD **Agents** tab to create/edit/delete custom ones. An agent with
+  `use_research_tool` set gets a CrossRef journal-search tool merged into the chat's tool-calling
+  loop alongside any connected MCP tools. The MCP-server checklist on an agent is stored but not
+  yet enforced — Chat currently exposes all connected MCP tools to every agent regardless of that
+  list, documented as such in the Agents tab itself.
+- **Projects**: named standing instructions ("this chat is about the homelab migration"), with a
+  **Projects** tab to create/edit them and an optional working directory. Scoping a Chat session
+  to a project injects its instructions as a leading system message; scoping a Code session to
+  one auto-fills the working directory and reads the same instructions in via `--read`
+  (`project-context.md`), the same mechanism memory context already uses — one unique-intersection
+  feature shared by both views instead of being Chat-only.
+- **File attachments (Chat)**: drag a text/code file onto the Chat pane (or use the paperclip
+  button) to attach it as context for the next message. Deliberately text-only — read via the
+  browser's own `FileReader`, no Tauri fs permission or vision/base64 plumbing involved — and
+  capped at ~50k characters per file with a truncation note rather than silently blowing out the
+  context window. Binary extensions are rejected with an error rather than being read as garbled
+  text.
 
 ## What was actually verified (read this before trusting it)
 
