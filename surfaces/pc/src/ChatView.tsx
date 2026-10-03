@@ -41,6 +41,34 @@ interface McpServerConfig {
   args: string[];
 }
 
+interface AgentInfo {
+  id: string;
+  name: string;
+  description: string;
+  system_prompt: string;
+  mcp_servers: string[];
+  use_research_tool: boolean;
+}
+
+const RESEARCH_TOOL: GatewayTool = {
+  type: "function",
+  function: {
+    name: "search_journal_articles",
+    description:
+      "Search CrossRef for real peer-reviewed journal articles on a topic, ranked by citation " +
+      "count. Use this before answering factual or scientific questions so claims can be " +
+      "grounded in actual literature rather than guessed.",
+    parameters: {
+      type: "object",
+      properties: {
+        query: { type: "string", description: "Search terms for the topic." },
+        limit: { type: "number", description: "Max results to return (1-20)." },
+      },
+      required: ["query"],
+    },
+  },
+};
+
 const FALLBACK_MODELS = ["chat-default", "chat-fast", "chat-batch"];
 const MEMORY_MARKER = /\[MEMORY:(user|feedback|project|reference)\]\s*(.+)/i;
 
@@ -99,6 +127,8 @@ export default function ChatView() {
   const [newMcpName, setNewMcpName] = useState("");
   const [newMcpCommand, setNewMcpCommand] = useState("npx");
   const [newMcpArgs, setNewMcpArgs] = useState("");
+  const [agents, setAgents] = useState<AgentInfo[]>([]);
+  const [agentId, setAgentId] = useState<string>("");
 
   const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -115,6 +145,7 @@ export default function ChatView() {
     refreshSessions();
     refreshMcpTools();
     invoke<McpServerConfig[]>("get_mcp_servers_config").then(setMcpServers).catch(() => undefined);
+    invoke<AgentInfo[]>("list_agents").then(setAgents).catch(() => undefined);
     listModels()
       .then((list) => {
         if (list.length > 0) {
@@ -227,36 +258,46 @@ export default function ChatView() {
     abortRef.current = controller;
 
     try {
+      const selectedAgent = agents.find((a) => a.id === agentId);
       const memoryContext = await invoke<string>("get_memory_context").catch(() => "");
-      const systemPrelude: ChatMessage[] = memoryContext
-        ? [
-            {
-              role: "system",
-              content:
-                `${memoryContext}\nIf you learn something about the user or this project worth ` +
-                `remembering for future conversations, end your reply with one line formatted ` +
-                `exactly as: [MEMORY:category] the fact to remember - where category is one of ` +
-                `user, feedback, project, reference. Only do this when something is genuinely ` +
-                `worth persisting, not on every message.`,
-            },
-          ]
-        : [];
+      const systemPrelude: ChatMessage[] = [];
+      if (selectedAgent?.system_prompt) {
+        systemPrelude.push({ role: "system", content: selectedAgent.system_prompt });
+      }
+      if (memoryContext) {
+        systemPrelude.push({
+          role: "system",
+          content:
+            `${memoryContext}\nIf you learn something about the user or this project worth ` +
+            `remembering for future conversations, end your reply with one line formatted ` +
+            `exactly as: [MEMORY:category] the fact to remember - where category is one of ` +
+            `user, feedback, project, reference. Only do this when something is genuinely ` +
+            `worth persisting, not on every message.`,
+        });
+      }
       const outgoingHistory = [...systemPrelude, ...history.map(({ role, content }) => ({ role, content }))];
 
-      if (mcpTools.length > 0) {
-        const tools: GatewayTool[] = mcpTools.map((t) => ({
-          type: "function",
-          function: {
-            name: `${t.server}__${t.name}`,
-            description: t.description,
-            parameters: t.input_schema,
-          },
-        }));
+      const tools: GatewayTool[] = mcpTools.map((t) => ({
+        type: "function",
+        function: {
+          name: `${t.server}__${t.name}`,
+          description: t.description,
+          parameters: t.input_schema,
+        },
+      }));
+      if (selectedAgent?.use_research_tool) {
+        tools.push(RESEARCH_TOOL);
+      }
+
+      if (tools.length > 0) {
         const finalText = await runToolLoop(
           model,
           outgoingHistory,
           tools,
           async (toolName, args) => {
+            if (toolName === "search_journal_articles") {
+              return invoke("search_journal_articles", args as Record<string, unknown>);
+            }
             const sepIdx = toolName.indexOf("__");
             const server = toolName.slice(0, sepIdx);
             const tool = toolName.slice(sepIdx + 2);
@@ -375,6 +416,25 @@ export default function ChatView() {
               </option>
             ))}
           </select>
+          <select
+            className="model-select"
+            value={agentId}
+            onChange={(e) => setAgentId(e.target.value)}
+            disabled={isStreaming}
+            title={agents.find((a) => a.id === agentId)?.description}
+          >
+            <option value="">No agent</option>
+            {agents.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name}
+              </option>
+            ))}
+          </select>
+          {agents.find((a) => a.id === agentId)?.use_research_tool && (
+            <span className="mcp-badge" title="This agent can search CrossRef for peer-reviewed journal articles">
+              📚 research
+            </span>
+          )}
           {mcpTools.length > 0 && (
             <span className="mcp-badge" title={mcpTools.map((t) => t.name).join(", ")}>
               🔌 {mcpTools.length} tool{mcpTools.length === 1 ? "" : "s"}
