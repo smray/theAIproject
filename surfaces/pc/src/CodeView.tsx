@@ -260,6 +260,8 @@ export default function CodeView() {
   const [mode, setMode] = useState<"chat" | "terminal">("chat");
   const [showHooks, setShowHooks] = useState(false);
   const [hooks, setHooks] = useState<HooksConfig>(EMPTY_HOOKS);
+  // undefined = still checking, null = Aider not found anywhere
+  const [aiderPath, setAiderPath] = useState<string | null | undefined>(undefined);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -273,6 +275,7 @@ export default function CodeView() {
     invoke<SkillInfo[]>("list_skills").then(setSkills).catch(() => undefined);
     invoke<HooksConfig>("get_hooks_config").then(setHooks).catch(() => undefined);
     invoke<ProjectInfo[]>("list_projects").then(setProjects).catch(() => undefined);
+    invoke<string | null>("get_aider_path").then(setAiderPath).catch(() => setAiderPath(null));
     refreshSessions();
     listModels()
       .then((list) => {
@@ -536,6 +539,22 @@ export default function CodeView() {
     }
   }
 
+  async function locateAider() {
+    const selected = await open({
+      multiple: false,
+      title: "Select aider.exe",
+      filters: [{ name: "Aider", extensions: ["exe"] }],
+    });
+    if (typeof selected !== "string") return;
+    try {
+      await invoke<string>("set_aider_path", { path: selected });
+      setAiderPath(selected);
+      setError(null);
+    } catch (err) {
+      setError(errText(err));
+    }
+  }
+
   function updateHookField(field: keyof HooksConfig, value: string) {
     setHooks((prev) => ({ ...prev, [field]: value.split("\n") }));
   }
@@ -689,6 +708,18 @@ export default function CodeView() {
             </div>
             <button type="button" className="cv-btn cv-btn-primary" onClick={() => void saveHooks()}>
               Save hooks
+            </button>
+          </div>
+        )}
+
+        {aiderPath === null && (
+          <div className="cv-setup">
+            <span>
+              Aider isn't set up yet - the Code view needs it to make changes. If you installed it with pip or a
+              virtual environment, point the app at <code>aider.exe</code> once.
+            </span>
+            <button type="button" className="cv-btn cv-btn-primary" onClick={() => void locateAider()}>
+              Locate aider.exe
             </button>
           </div>
         )}

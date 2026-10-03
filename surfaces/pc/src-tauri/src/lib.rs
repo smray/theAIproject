@@ -54,6 +54,8 @@ pub fn run() {
             code_turn::list_code_sessions,
             code_turn::forget_code_session,
             code_turn::git_show,
+            code_turn::get_aider_path,
+            code_turn::set_aider_path,
             db::list_sessions,
             db::create_session,
             db::rename_session,

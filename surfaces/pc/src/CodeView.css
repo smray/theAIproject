@@ -853,3 +853,29 @@
   padding: 10px;
   background: var(--ink);
 }
+
+/* ---- Aider not found ---- */
+.cv-setup {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 10px 20px 0;
+  padding: 10px 14px;
+  background: #fdf3e1;
+  border: 1px solid #e8cf9a;
+  border-radius: 6px;
+  color: #7a5a14;
+  font-size: 13px;
+  line-height: 1.5;
+  flex-shrink: 0;
+}
+
+.cv-setup code {
+  font-family: "Cascadia Code", Consolas, monospace;
+  font-size: 12px;
+}
+
+.cv-setup .cv-btn {
+  flex-shrink: 0;
+}

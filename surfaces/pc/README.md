@@ -11,6 +11,11 @@ overnight push, at the user's explicit direction to not stop at phase boundaries
 
 - **Tauri 2 + React 19 + TypeScript**, two views sharing one window: **Chat** (unchanged from the
   original Phase 3 build) and **Code** (new).
+- **Borderless window**: the native title bar is off (`decorations: false`); the app header is the
+  title bar (drag to move, double-click to maximize) with its own minimize / maximize / close.
+  Close still hides to the tray. Costs the Windows 11 snap-layouts flyout on the maximize button.
+  Page-level scrollbars are gone (the old default body margin pushed the page past 100vh);
+  inner scrollbars stay hidden until you hover the scrollable area.
 - **Code view**: chat-first ("vibe coding") front end on **Aider**, not a custom-built agentic
   loop (the plan's own documented fallback — §4 says "if [the headless-mode spike] falls short,
   Aider ... is a known-working fallback"; the spike itself was skipped for time, not attempted
@@ -158,9 +163,15 @@ surfaces/pc/aider-env/Scripts/python.exe -m pip install aider-chat
 
 The Rust backend (`src-tauri/src/code_session.rs`, `resolve_aider_path()`) looks for it in order:
 1. `AI_PROJECT_AIDER_PATH` env var, if set (exact path to `aider.exe`).
-2. `aider-env/Scripts/aider.exe` next to the project root — works automatically in `tauri dev`.
-3. `aider` on `PATH` — works for the packaged/installed app, if Aider is installed globally
-   (`pip install aider-chat` without a venv) or `aider-env\Scripts` is added to `PATH` manually.
+2. The path saved by the Code view's **Locate aider.exe** button (`<app-config-dir>/aider-path.txt`;
+   the file is validated by running `aider --version` before it is saved). This is the setting to
+   use for an installed app — the Code view shows a banner with the button whenever nothing is
+   found, instead of failing on the first prompt.
+3. `aider-env/Scripts/aider.exe` next to the folder the app was **built** from (`CARGO_MANIFEST_DIR`
+   is baked in at compile time) — works in `tauri dev`, but an installer built from some other
+   folder (e.g. a clean checkout) points at a path that doesn't have the venv.
+4. `aider` on `PATH` — works if Aider is installed globally (`pip install aider-chat` without a
+   venv) or `aider-env\Scripts` is added to `PATH` manually.
 
 If none of these resolve, starting a Code session fails with a clear error in the UI rather than
 a cryptic spawn failure.

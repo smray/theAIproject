@@ -1,18 +1,90 @@
+/* The browser's default 8px body margin on top of a 100vh app is what produced the page-level
+   scrollbar. The app owns the whole window; only inner panes scroll. */
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: var(--ink);
+}
+
+/* Scrollbars stay out of sight until you hover the scrollable area, then show a slim thumb. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+*:hover {
+  scrollbar-color: rgba(122, 106, 82, 0.4) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 4px;
+}
+
+*:hover::-webkit-scrollbar-thumb {
+  background: rgba(122, 106, 82, 0.4);
+}
+
 .app {
   display: flex;
   flex-direction: column;
   height: 100vh;
   font-family: var(--font-body);
   font-weight: 300;
+  background: var(--warm-white);
 }
 
+/* The header is the window's title bar (native decorations are off): drag it to move the window,
+   double-click to maximize. Buttons inside it are still clickable. */
 .app-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 24px;
+  height: 44px;
+  padding: 0 0 0 20px;
   background: var(--ink);
   flex-shrink: 0;
+  user-select: none;
+}
+
+.win-controls {
+  display: flex;
+  align-self: stretch;
+  margin-left: 12px;
+}
+
+.win-btn {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: rgba(254, 252, 249, 0.65);
+  cursor: default;
+}
+
+.win-btn:hover {
+  background: rgba(254, 252, 249, 0.12);
+  color: var(--warm-white);
+}
+
+.win-close:hover {
+  background: #c42b1c;
+  color: #fff;
 }
 
 .app-title {

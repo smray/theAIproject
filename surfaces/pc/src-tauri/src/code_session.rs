@@ -179,10 +179,23 @@ pub struct StartSessionArgs {
 /// installer and running it on a different machine/path would just break. Properly solving that
 /// needs a frozen standalone build (e.g. PyInstaller) - not attempted here; see
 /// surfaces/pc/README.md's Code view section. Instead: resolve it the normal CLI-tool way.
-pub(crate) fn resolve_aider_path() -> Result<PathBuf, String> {
+pub(crate) fn aider_path_file(app: &AppHandle) -> PathBuf {
+    config_dir(app).join("aider-path.txt")
+}
+
+pub(crate) fn resolve_aider_path(app: &AppHandle) -> Result<PathBuf, String> {
     if let Ok(override_path) = std::env::var("AI_PROJECT_AIDER_PATH") {
         let p = PathBuf::from(override_path);
         if p.exists() {
+            return Ok(p);
+        }
+    }
+
+    // Path chosen in the UI ("Locate aider.exe"). Beats the build-folder guess below, which only
+    // works when the app was built from the folder that contains aider-env.
+    if let Ok(saved) = std::fs::read_to_string(aider_path_file(app)) {
+        let p = PathBuf::from(saved.trim());
+        if p.is_file() {
             return Ok(p);
         }
     }
@@ -212,9 +225,7 @@ pub(crate) fn resolve_aider_path() -> Result<PathBuf, String> {
     }
 
     Err(
-        "Aider not found. Install it with `pip install aider-chat` and either add it to your \
-         PATH, or set the AI_PROJECT_AIDER_PATH environment variable to the full path of \
-         aider.exe before launching this app. See surfaces/pc/README.md."
+        "Aider not found. Use \"Locate aider.exe\" in the Code view, or install it with          `pip install aider-chat` and add it to your PATH (or set AI_PROJECT_AIDER_PATH).          See surfaces/pc/README.md."
             .to_string(),
     )
 }
@@ -264,7 +275,7 @@ pub fn start_code_session(
         })
         .map_err(|e| e.to_string())?;
 
-    let aider_exe = resolve_aider_path()?;
+    let aider_exe = resolve_aider_path(&app)?;
 
     let mut cmd = CommandBuilder::new(aider_exe);
     cmd.arg("--openai-api-base");

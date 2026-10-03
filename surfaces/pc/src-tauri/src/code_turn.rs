@@ -9,7 +9,7 @@
 // a turn is returned when the turn ends and parsed on the frontend (src/aiderRecord.ts); the raw
 // stdout stream is only for the live "working..." view.
 
-use crate::code_session::{config_dir, load_hooks, resolve_aider_path, run_hook_commands, HooksConfig};
+use crate::code_session::{aider_path_file, config_dir, load_hooks, resolve_aider_path, run_hook_commands, HooksConfig};
 use crate::db::{get_memory_context, Db};
 use crate::projects::get_project_by_id;
 use notify::{RecommendedWatcher, RecursiveMode, Watcher};
@@ -342,7 +342,7 @@ pub fn run_code_turn(app: AppHandle, state: State<CodeTurnState>, args: TurnArgs
         return Err(format!("{} is not a directory", args.cwd));
     }
 
-    let aider = resolve_aider_path()?;
+    let aider = resolve_aider_path(&app)?;
     let cfg = config_dir(&app);
     let dir = cfg.join("code-history");
     std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
@@ -488,6 +488,36 @@ pub fn forget_code_session(app: AppHandle, db: State<Db>, session_id: String) ->
     Ok(())
 }
 
+/// Where the app currently finds Aider, or None. Lets the UI explain a missing install up front
+/// instead of failing on the first prompt.
+#[tauri::command]
+pub fn get_aider_path(app: AppHandle) -> Option<String> {
+    resolve_aider_path(&app).ok().map(|p| p.to_string_lossy().to_string())
+}
+
+/// Validates a user-chosen aider.exe by running it, then remembers it across launches.
+#[tauri::command]
+pub fn set_aider_path(app: AppHandle, path: String) -> Result<String, String> {
+    let p = PathBuf::from(path.trim().trim_matches('"'));
+    if !p.is_file() {
+        return Err(format!("{} is not a file", p.display()));
+    }
+    let mut c = Command::new(&p);
+    c.arg("--version");
+    hide_window(&mut c);
+    let out = c.output().map_err(|e| format!("Couldn't run that file: {}", e))?;
+    let text = format!(
+        "{}{}",
+        String::from_utf8_lossy(&out.stdout),
+        String::from_utf8_lossy(&out.stderr)
+    );
+    if !out.status.success() || !text.to_lowercase().contains("aider") {
+        return Err("That doesn't look like Aider (aider --version didn't answer as expected).".to_string());
+    }
+    std::fs::write(aider_path_file(&app), p.to_string_lossy().as_bytes()).map_err(|e| e.to_string())?;
+    Ok(text.trim().to_string())
+}
+
 #[tauri::command]
 pub fn git_show(cwd: String, rev: String) -> Result<String, String> {
     if !(4..=40).contains(&rev.len()) || !rev.chars().all(|c| c.is_ascii_hexdigit()) {
@@ -553,7 +583,7 @@ mod tests {
     #[ignore]
     fn aider_turn_against_mock() {
         let url = std::env::var("AI_PROJECT_TEST_MOCK_URL").expect("AI_PROJECT_TEST_MOCK_URL");
-        let aider = resolve_aider_path().expect("aider");
+        let aider = PathBuf::from(std::env::var("AI_PROJECT_AIDER_PATH").expect("AI_PROJECT_AIDER_PATH"));
         let root = std::env::temp_dir().join(format!("ai-proj-turn-{}", std::process::id()));
         let repo = root.join("repo");
         std::fs::create_dir_all(&repo).unwrap();

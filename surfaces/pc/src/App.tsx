@@ -4,6 +4,7 @@ import ChatView from "./ChatView";
 import CodeView from "./CodeView";
 import MemoryView from "./MemoryView";
 import ProjectsView from "./ProjectsView";
+import WindowControls from "./WindowControls";
 import "./App.css";
 
 type Tab = "chat" | "code" | "memory" | "projects" | "agents";
@@ -13,9 +14,11 @@ export default function App() {
 
   return (
     <div className="app">
-      <header className="app-header">
-        <h1 className="app-title">The AI Project</h1>
-        <nav className="app-tabs">
+      <header className="app-header" data-tauri-drag-region>
+        <h1 className="app-title" data-tauri-drag-region>
+          The AI Project
+        </h1>
+        <nav className="app-tabs" data-tauri-drag-region>
           <button
             type="button"
             className={`app-tab ${tab === "chat" ? "active" : ""}`}
@@ -52,6 +55,7 @@ export default function App() {
             Agents
           </button>
         </nav>
+        <WindowControls />
       </header>
 
       {/* All views stay mounted so switching tabs never kills a running Code session. */}
