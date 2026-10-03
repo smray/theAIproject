@@ -21,7 +21,7 @@ infra/            Thin slice of Phase 0 backend config that Phase 1+ genuinely d
                   (llm01, lxc-gateway/LiteLLM, lxc-vectordb/Qdrant, lxc-retrieval/Vane) — ADR 0003
 surfaces/web/     Open WebUI integration (Phase 1 — config, not new code)
 surfaces/android/ RikkaHub configuration (Phase 2 — config, not new code)
-surfaces/pc/      Tauri app: Chat view (Phase 3) + Code view (Phase 4) + hooks/skills (Phase 5)
+surfaces/pc/      Tauri app: Chat (P3) + Code (P4) + hooks/skills (P5) + agents/Projects/tray
 ```
 
 Backend (Phase 0 — gateway, retrieval, memory, orchestration) is mostly out of this repo's scope;
@@ -36,16 +36,24 @@ gap worth closing, not cosmetic) — see
 **Phase 1 (web) done** — confirmed working end-to-end (Open WebUI → LiteLLM gateway → `llm01`),
 RAG (Qdrant) and web search (Vane) both deployed too, see
 [surfaces/web/README.md](surfaces/web/README.md). Remaining extras there (MCP wiring, branding)
-are optional polish, not blockers. **Phase 2 (Android)** has concrete steps written up in
-[surfaces/android/README.md](surfaces/android/README.md) but hasn't been installed/tested yet.
+are optional polish, not blockers. **Phase 2 (Android) partially verified** — RikkaHub installs
+and launches for real on an emulator, and the configuration screen matches the documented steps,
+but automated end-to-end form submission wasn't completed; see
+[surfaces/android/README.md](surfaces/android/README.md).
 **Phase 3 (PC app, Chat view)** is built and packaged. **Phase 4 (Code view)** is built too —
 Aider in a real PTY terminal, confirmed working end-to-end outside the GUI (connected through the
 gateway, wrote a file, committed it) — skipping the plan's one-week headless-mode spike for
 Pi/Zero by going straight to the documented Aider fallback. **Phase 5 (hooks/skills)** has a
 working approximation on top (process-lifecycle + filesystem-watch hooks, `--read`-attached
-skill files). **None of this has been visually tested in the actual GUI** — see
-[surfaces/pc/README.md](surfaces/pc/README.md)'s "What was actually verified" section before
-trusting it further than that.
+skill files). Beyond the five original phases, the PC app also grew: **agent personas**
+(selectable system-prompt/tool presets, with a CrossRef journal-search tool wired into the chat
+tool loop), **Projects** (named standing instructions shared by Chat and Code sessions), MCP
+client support, session persistence, an FR7-style memory store, and a system tray +
+global-shortcut so the window survives being closed. **None of the PC app's GUI has been visually
+tested in the actual window** — see [surfaces/pc/README.md](surfaces/pc/README.md)'s "What was
+actually verified" section before trusting it further than that; that same README also notes a
+computer-use tool is available to finally do that, pending someone being at the keyboard to grant
+screen access.
 
 ## Contributing
 
