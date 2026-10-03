@@ -334,10 +334,10 @@ export default function ChatView() {
     setAttachments([]);
 
     const attachmentNote =
-      pendingAttachments.length > 0
-        ? `\n\n📎 ${pendingAttachments.map((a) => a.name).join(", ")}`
-        : "";
-    const displayText = typedText + attachmentNote;
+      pendingAttachments.length > 0 ? `📎 ${pendingAttachments.map((a) => a.name).join(", ")}` : "";
+    // join rather than concatenate so an attachment-only message (no typed text) doesn't end up
+    // as a session title that's just leading blank lines.
+    const displayText = [typedText, attachmentNote].filter(Boolean).join("\n\n");
     const apiText =
       pendingAttachments.length > 0
         ? `${pendingAttachments
