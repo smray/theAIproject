@@ -25,6 +25,7 @@ interface SessionInfo {
   id: string;
   view: string;
   title: string;
+  project_id: string | null;
   updated_at: number;
 }
 
@@ -48,6 +49,13 @@ interface AgentInfo {
   system_prompt: string;
   mcp_servers: string[];
   use_research_tool: boolean;
+}
+
+interface ProjectInfo {
+  id: string;
+  name: string;
+  instructions: string;
+  created_at: number;
 }
 
 const RESEARCH_TOOL: GatewayTool = {
@@ -129,6 +137,8 @@ export default function ChatView() {
   const [newMcpArgs, setNewMcpArgs] = useState("");
   const [agents, setAgents] = useState<AgentInfo[]>([]);
   const [agentId, setAgentId] = useState<string>("");
+  const [projects, setProjects] = useState<ProjectInfo[]>([]);
+  const [projectId, setProjectId] = useState<string>("");
 
   const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -146,6 +156,7 @@ export default function ChatView() {
     refreshMcpTools();
     invoke<McpServerConfig[]>("get_mcp_servers_config").then(setMcpServers).catch(() => undefined);
     invoke<AgentInfo[]>("list_agents").then(setAgents).catch(() => undefined);
+    invoke<ProjectInfo[]>("list_projects").then(setProjects).catch(() => undefined);
     listModels()
       .then((list) => {
         if (list.length > 0) {
@@ -168,6 +179,7 @@ export default function ChatView() {
     });
     setMessages(rows.map((r) => ({ id: newId(), role: r.role as DisplayMessage["role"], content: r.content })));
     setSessionId(id);
+    setProjectId(sessions.find((s) => s.id === id)?.project_id ?? "");
   }
 
   function startNewSession() {
@@ -185,7 +197,11 @@ export default function ChatView() {
   async function ensureSession(firstMessage: string): Promise<string> {
     if (sessionId) return sessionId;
     const title = firstMessage.slice(0, 60);
-    const id = await invoke<string>("create_session", { view: "chat", title });
+    const id = await invoke<string>("create_session", {
+      view: "chat",
+      title,
+      projectId: projectId || null,
+    });
     setSessionId(id);
     refreshSessions();
     return id;
@@ -259,8 +275,12 @@ export default function ChatView() {
 
     try {
       const selectedAgent = agents.find((a) => a.id === agentId);
+      const selectedProject = projects.find((p) => p.id === projectId);
       const memoryContext = await invoke<string>("get_memory_context").catch(() => "");
       const systemPrelude: ChatMessage[] = [];
+      if (selectedProject?.instructions) {
+        systemPrelude.push({ role: "system", content: selectedProject.instructions });
+      }
       if (selectedAgent?.system_prompt) {
         systemPrelude.push({ role: "system", content: selectedAgent.system_prompt });
       }
@@ -427,6 +447,24 @@ export default function ChatView() {
             {agents.map((a) => (
               <option key={a.id} value={a.id}>
                 {a.name}
+              </option>
+            ))}
+          </select>
+          <select
+            className="model-select"
+            value={projectId}
+            onChange={(e) => setProjectId(e.target.value)}
+            disabled={isStreaming || !!sessionId}
+            title={
+              sessionId
+                ? "Project is fixed once a chat has started - start a new chat to change it"
+                : projects.find((p) => p.id === projectId)?.instructions
+            }
+          >
+            <option value="">No project</option>
+            {projects.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
               </option>
             ))}
           </select>
