@@ -1,8 +1,9 @@
 # Android surface — RikkaHub configuration
 
 Phase 2 of [the roadmap](../../docs/Integrated%20system%20development%20plan.md#5-phased-roadmap).
-Status: **in progress** — Phase 1 (web) is live (`lxc-gateway` + `lxc-ui` deployed), so the gateway
-contract is already validated against a real client before this one depends on it.
+Status: **partially verified** — installed and launched for real on an Android emulator
+(`Pixel_6a`, API via the Android SDK already present on this dev machine), not just documented
+blind. See "Verification attempt" below for exactly what that confirmed and what it didn't.
 
 Per the plan, this is adoption, not a build — nothing here runs on the homelab, it's entirely
 configuration on your phone:
@@ -31,6 +32,37 @@ configuration on your phone:
 - [ ] Fallback if a gap matters in practice: Open WebUI's installable PWA, pointed at
       `http://192.168.1.43:3000` (`lxc-ui`) — zero additional build cost, less native feel — keep
       as backup, not default.
+
+## Verification attempt (emulator)
+
+This dev machine has a real Android SDK + emulators already set up (`Pixel_10_Pro`, `Pixel_6a` —
+leftover from KiwiProductivity), so rather than leave this surface purely documented-but-untested
+like everything Android-related had been all session, it got an actual test pass:
+
+- ✅ **RikkaHub 2.5.6 (arm64-v8a) installed and launched cleanly** on `Pixel_6a` (an x86_64 Google
+  Play image — its ARM translation layer handled the arm64-only APK fine, no separate x86 build
+  needed).
+- ✅ **The Settings → Providers → Add Provider screen matches this doc's assumptions exactly**:
+  Name / API Key / API Base URL / API Path fields, OpenAI-compatible format selectable — confirms
+  the configuration steps above are pointed at real, existing UI, not a guess.
+- ❌ **Did not successfully complete filling in and saving the custom provider via automation.**
+  Driving a real native Android UI via blind `adb shell input tap`/`text` coordinates turned out
+  to be genuinely unreliable here — the Add Provider dialog repositions vertically depending on
+  keyboard visibility, so coordinates captured in one state silently miss in another (one such
+  miss hit the OpenAI/Google/Claude format tabs instead of the Name field). Multiple attempts also
+  raced against the on-screen keyboard's own event queue, causing text to land in the wrong field
+  or get duplicated. Proper mobile UI automation needs a real framework (Espresso/UIAutomator with
+  resource-id-based element matching, not raw pixel taps) — not attempted here, out of scope for
+  what this session could responsibly spend time on.
+- **Known leftover**: a harmless duplicate, unconfigured "OpenAI" provider entry exists in the
+  emulator's RikkaHub install from a partial attempt (still showing default `api.openai.com`, "0
+  models" — never actually got the gateway URL/key saved into it). Not connected to anything,
+  doesn't affect the real device setup described above. Delete it manually if continuing from this
+  emulator state, or just configure provider manually as this doc describes from the start.
+
+**What this means in practice**: the written instructions above are now confirmed to describe a
+real, reachable configuration flow, not a guess at RikkaHub's UI — but actually completing that
+flow on a real phone is still a manual step for a person, same as before this verification pass.
 
 **If a RikkaHub fork ever becomes necessary**, that's a new ADR (see
 [docs/adr/0001-repo-layout-and-stack.md](../../docs/adr/0001-repo-layout-and-stack.md)) and this
