@@ -118,7 +118,7 @@ or similar is ever built).
 | `odysseus` (`lxc-gateway`) | `192.168.1.40` | LiteLLM gateway on :4000 |
 | `newton` (`lxc-ui`) | `192.168.1.43` | Open WebUI on :3000 |
 | `hubble` (`lxc-vectordb`) | `192.168.1.44` | Qdrant on :6333 |
-| `lxc-retrieval` | `192.168.1.45` | Vane (bundled SearxNG) on :3000 |
+| `herschel` (`lxc-retrieval`, CT `106`) | `192.168.1.45` | Vane (bundled SearxNG) on :3000 |
 
 Gateway for this subnet is `192.168.1.1` (**not** `192.168.1.2`/`NSW01` — that's the Cisco
 switch's management address, which only permits narrow admin traffic per its `ADSL_LAN_IN` ACL,

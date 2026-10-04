@@ -1,5 +1,8 @@
 # lxc-retrieval — Vane (formerly Perplexica), bundled SearxNG (FR1/FR4)
 
+Astronomer name: `herschel` (CT `106`, `192.168.1.45`) — confirmed running via `pct config 106`
++ `pct exec 106 -- docker ps` after it went briefly unrecorded in this doc.
+
 Source: requirements doc Part 4 §4.2, **corrected** — see below.
 
 ## The project renamed and simplified since the requirements doc was written
